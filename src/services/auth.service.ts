@@ -82,17 +82,17 @@ class AuthService {
   // Check if user is authenticated
   // This is now primarily handled by the AuthProvider
   isAuthenticated(): boolean {
-    const authStr = localStorage.getItem('auth');
-    return !!authStr;
+    const sessionStr = localStorage.getItem('session');
+    return !!sessionStr;
   }
 
   // Get auth token
   getToken(): string | null {
     try {
-      const authStr = localStorage.getItem('auth');
-      if (authStr) {
-        const auth = JSON.parse(authStr);
-        return auth.session.token;
+      const sessionStr = localStorage.getItem('session');
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        return session.token;
       }
     } catch (error) {
       console.error('Error getting token:', error);

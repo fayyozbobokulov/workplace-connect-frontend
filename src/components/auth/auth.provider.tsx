@@ -2,11 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 import { Navigate, useLocation } from 'react-router-dom';
 import authService, { type Session, type User } from '../../services/auth.service';
 
-// Define Auth object interface for localStorage
-interface Auth {
-  session: Session;
-  user: User;
-}
+// No need for a separate Auth interface since we're only storing the session
 
 // Define AuthContext interface
 interface AuthContextType {
@@ -37,18 +33,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        // Try to get auth from localStorage
-        const authStr = localStorage.getItem('auth');
-        if (authStr) {
-          const auth: Auth = JSON.parse(authStr);
-          setSession(auth.session);
-          setUser(auth.user);
-          authService.setupAxiosInterceptors(auth.session.token);
+        // Try to get session from localStorage
+        const sessionStr = localStorage.getItem('session');
+        if (sessionStr) {
+          const storedSession: Session = JSON.parse(sessionStr);
+          setSession(storedSession);
+          setUser(storedSession.user);
+          authService.setupAxiosInterceptors(storedSession.token);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        // Clear potentially corrupted auth data
-        localStorage.removeItem('auth');
+        // Clear potentially corrupted session data
+        localStorage.removeItem('session');
       } finally {
         setIsLoading(false);
       }
@@ -65,12 +61,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(newSession);
       setUser(newSession.user);
       
-      // Store auth in localStorage
-      const auth: Auth = {
-        session: newSession,
-        user: newSession.user
-      };
-      localStorage.setItem('auth', JSON.stringify(auth));
+      // Store session in localStorage
+      localStorage.setItem('session', JSON.stringify(newSession));
       
       authService.setupAxiosInterceptors(newSession.token);
     } catch (error) {
@@ -89,12 +81,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSession(newSession);
       setUser(newSession.user);
       
-      // Store auth in localStorage
-      const auth: Auth = {
-        session: newSession,
-        user: newSession.user
-      };
-      localStorage.setItem('auth', JSON.stringify(auth));
+      // Store session in localStorage
+      localStorage.setItem('session', JSON.stringify(newSession));
       
       authService.setupAxiosInterceptors(newSession.token);
     } catch (error) {
@@ -107,8 +95,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Sign out function
   const signOut = () => {
-    // Remove auth from localStorage
-    localStorage.removeItem('auth');
+    // Remove session from localStorage
+    localStorage.removeItem('session');
     setSession(null);
     setUser(null);
   };
