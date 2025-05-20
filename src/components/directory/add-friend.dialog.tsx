@@ -9,7 +9,8 @@ import {
   Autocomplete,
   Box,
   Typography,
-  Avatar
+  Avatar,
+  Chip
 } from '@mui/material';
 
 // Mock user data for autocomplete
@@ -28,14 +29,17 @@ interface User {
   avatar: string;
 }
 
+// Type for selected item - can be either a User or a custom email entry
+type SelectedItem = User | { id: string; email: string; isCustomEmail: true };
+
 interface AddFriendDialogProps {
   open: boolean;
   onClose: () => void;
-  onAddFriend: (user: User | null, email?: string) => void;
+  onAddFriend: (selections: SelectedItem[]) => void;
 }
 
 const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [inputValue, setInputValue] = useState('');
   
   const isValidEmail = (email: string) => {
@@ -46,8 +50,19 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
   const isNewValidEmail = useMemo(() => {
     if (!inputValue) return false;
     if (!isValidEmail(inputValue)) return false;
-    return !mockUsers.some(user => user.email.toLowerCase() === inputValue.toLowerCase());
-  }, [inputValue]);
+    
+    // Check if email is already in our selections
+    const isAlreadySelected = selectedItems.some(item => 
+      'email' in item && item.email.toLowerCase() === inputValue.toLowerCase()
+    );
+    
+    // Check if email matches an existing user
+    const matchesExistingUser = mockUsers.some(user => 
+      user.email.toLowerCase() === inputValue.toLowerCase()
+    );
+    
+    return !isAlreadySelected && !matchesExistingUser;
+  }, [inputValue, selectedItems]);
 
   // Check if input matches an existing user
   const matchesExistingUser = useMemo(() => {
@@ -57,31 +72,66 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
     );
   }, [inputValue]);
   
+  const handleAddCustomEmail = () => {
+    if (isNewValidEmail) {
+      const newEmailItem: SelectedItem = {
+        id: `email-${Date.now()}`,
+        email: inputValue,
+        isCustomEmail: true
+      };
+      
+      setSelectedItems(prev => [...prev, newEmailItem]);
+      setInputValue('');
+    }
+  };
+  
+  const handleRemoveItem = (itemId: string) => {
+    setSelectedItems(prev => prev.filter(item => item.id !== itemId));
+  };
+  
   const handleAddFriend = () => {
-    if (selectedUser) {
-      // Add existing user as friend
-      onAddFriend(selectedUser);
-      handleClose();
-    } else if (isNewValidEmail) {
-      // Send invitation to email
-      onAddFriend(null, inputValue);
+    if (selectedItems.length > 0) {
+      onAddFriend(selectedItems);
       handleClose();
     }
   };
   
   const handleClose = () => {
-    setSelectedUser(null);
+    setSelectedItems([]);
     setInputValue('');
     onClose();
   };
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add Friend</DialogTitle>
+      <DialogTitle>Add Friends</DialogTitle>
       <DialogContent>
+        {/* Selected items displayed as chips */}
+        {selectedItems.length > 0 && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, mt: 1 }}>
+            {selectedItems.map((item) => {
+              const isExistingUser = !('isCustomEmail' in item);
+              const email = isExistingUser ? (item as User).email : item.email;
+              
+              return (
+                <Chip
+                  key={item.id}
+                  label={email}
+                  color={isExistingUser ? 'primary' : 'default'}
+                  onDelete={() => handleRemoveItem(item.id)}
+                  avatar={isExistingUser ? <Avatar src={(item as User).avatar} /> : undefined}
+                />
+              );
+            })}
+          </Box>
+        )}
+        
         <Autocomplete
           id="friend-search"
-          options={mockUsers}
+          options={mockUsers.filter(user => 
+            // Filter out users that are already selected
+            !selectedItems.some(item => !('isCustomEmail' in item) && item.id === user.id)
+          )}
           getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
           renderOption={(props, option) => {
             // Since we're using the options array which only contains User objects,
@@ -109,23 +159,32 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
               error={inputValue !== '' && isValidEmail(inputValue) && !isNewValidEmail}
               helperText={
                 inputValue !== '' && isValidEmail(inputValue) && !isNewValidEmail
-                  ? 'This email is already associated with an existing user'
+                  ? 'This email is already in use or selected'
                   : isValidEmail(inputValue) && isNewValidEmail
-                  ? 'Valid email for invitation'
+                  ? 'Press Enter to add this email'
                   : inputValue && !isValidEmail(inputValue) && !matchesExistingUser
                   ? 'Enter a valid email to send invitation'
                   : ''
               }
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && isNewValidEmail) {
+                  e.preventDefault();
+                  handleAddCustomEmail();
+                }
+              }}
             />
           )}
-          value={selectedUser}
+          value={null} // Always null since we're managing selections separately
           onChange={(_, newValue) => {
-            // Only set User objects or null as selectedUser
-            if (newValue === null || typeof newValue === 'object') {
-              setSelectedUser(newValue as User | null);
+            // Add the selected user to our selections
+            if (newValue && typeof newValue === 'object') {
+              const user = newValue as User;
+              // Check if already selected
+              if (!selectedItems.some(item => !('isCustomEmail' in item) && item.id === user.id)) {
+                setSelectedItems(prev => [...prev, user]);
+              }
+              setInputValue('');
             }
-            // If it's a string, we don't set it as selectedUser
-            // It will be handled as an email input instead
           }}
           inputValue={inputValue}
           onInputChange={(_, newInputValue) => {
@@ -134,9 +193,9 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
           freeSolo
         />
         
-        {inputValue && !selectedUser && !matchesExistingUser && isValidEmail(inputValue) && (
+        {inputValue && !matchesExistingUser && isValidEmail(inputValue) && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            No matching users found. An invitation will be sent to this email.
+            No matching users found. Press Enter to add this email for invitation.
           </Typography>
         )}
       </DialogContent>
@@ -145,9 +204,9 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
         <Button 
           onClick={handleAddFriend} 
           variant="contained" 
-          disabled={!selectedUser && !isNewValidEmail}
+          disabled={selectedItems.length === 0 && !isNewValidEmail}
         >
-          {selectedUser ? 'Add Friend' : isNewValidEmail ? 'Send Invitation' : 'Add'}
+          {isNewValidEmail ? 'Add & Send Invitations' : selectedItems.length > 0 ? 'Add Friends' : 'Add'}
         </Button>
       </DialogActions>
     </Dialog>

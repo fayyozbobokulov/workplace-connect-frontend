@@ -139,14 +139,37 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
     setDialogOpen(false);
   };
 
-  const handleAddFriend = (user: User | null, email?: string) => {
-    if (user) {
-      setSnackbarMessage(`Friend request sent to ${user.name}`);
-      setSnackbarSeverity('success');
-    } else if (email) {
-      setSnackbarMessage(`Invitation sent to ${email}`);
-      setSnackbarSeverity('success');
+  // Type for selected item - can be either a User or a custom email entry
+  type SelectedItem = User | { id: string; email: string; isCustomEmail: true };
+
+  const handleAddFriend = (selections: SelectedItem[]) => {
+    if (selections.length === 0) return;
+    
+    // Count existing users and custom emails
+    const existingUsers = selections.filter(item => !('isCustomEmail' in item));
+    const customEmails = selections.filter(item => 'isCustomEmail' in item);
+    
+    let message = '';
+    
+    if (existingUsers.length > 0 && customEmails.length > 0) {
+      message = `Friend requests sent to ${existingUsers.length} user(s) and invitations sent to ${customEmails.length} email(s)`;
+    } else if (existingUsers.length > 0) {
+      if (existingUsers.length === 1) {
+        const user = existingUsers[0] as User;
+        message = `Friend request sent to ${user.name}`;
+      } else {
+        message = `Friend requests sent to ${existingUsers.length} users`;
+      }
+    } else if (customEmails.length > 0) {
+      if (customEmails.length === 1) {
+        message = `Invitation sent to ${customEmails[0].email}`;
+      } else {
+        message = `Invitations sent to ${customEmails.length} email addresses`;
+      }
     }
+    
+    setSnackbarMessage(message);
+    setSnackbarSeverity('success');
     setSnackbarOpen(true);
   };
 
