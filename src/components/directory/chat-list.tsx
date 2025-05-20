@@ -126,11 +126,6 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
   const filteredChats = chats.filter(chat => 
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Sort and separate pinned and regular chats
-  const pinnedChats = filteredChats
-    .filter(chat => chat.isPinned)
-    .sort(sortByLatestMessage);
     
   const regularChats = filteredChats
     .filter(chat => !chat.isPinned)
@@ -222,8 +217,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
       <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         
         {/* All Messages Header (only shown if there are pinned chats) */}
-        {pinnedChats.length > 0 && regularChats.length > 0 && (
-          <Box sx={{ 
+        <Box sx={{ 
             px: 2, 
             py: 1.5,
             display: 'flex',
@@ -237,7 +231,6 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
               ALL MESSAGES
             </Typography>
           </Box>
-        )}
         
         {/* Combined List with Scrolling */}
         <List 
@@ -273,7 +266,9 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
                 sx={{ 
                   px: 2, 
                   py: 1,
-                  width: '100%'
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center'
                 }}
               >
                 <ListItemAvatar>
@@ -306,17 +301,27 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
                   }
                   sx={{ margin: 0 }}
                 />
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', ml: 1 }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-end', 
+                  justifyContent: 'space-between',
+                  height: '100%',
+                  ml: 1,
+                  minWidth: '60px',
+                  py: 0.5
+                }}>
                   <Typography variant="caption" color="text.secondary">
                     {chat.timestamp}
                   </Typography>
-                  {chat.unread && (
-                    <Badge 
-                      badgeContent={chat.unread} 
-                      color="primary" 
-                      sx={{ mt: 0.5 }}
-                    />
-                  )}
+                  <Box sx={{ minHeight: '20px', display: 'flex', alignItems: 'center' }}>
+                    {chat.unread && (
+                      <Badge 
+                        badgeContent={chat.unread} 
+                        color="primary" 
+                      />
+                    )}
+                  </Box>
                 </Box>
               </ListItemButton>
             </ListItem>
