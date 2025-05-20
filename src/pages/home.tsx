@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useAuth } from '../components/auth/auth.provider';
-import ChatList, { type Chat } from '../components/directory/ChatList';
-import ChatContainer from '../components/messaging/ChatContainer';
-import type { Message } from '../components/messaging/MessageWindow';
+import ChatList, { type Chat } from '../components/directory/chat-list';
+import ChatContainer from '../components/messaging/chat-container';
+import type { Message } from '../components/messaging/message-window';
 
 // Mock data for chats
 const mockChats: Chat[] = [

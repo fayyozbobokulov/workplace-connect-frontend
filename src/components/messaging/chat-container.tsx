@@ -1,8 +1,8 @@
 import { Box } from '@mui/material';
-import ChatHeader from './ChatHeader';
-import MessageWindow, { type Message } from './MessageWindow';
-import MessageInput from './MessageInput';
-import type { Chat } from '../directory/ChatList';
+import ChatHeader from './chat-header';
+import MessageWindow, { type Message } from './message-window';
+import MessageInput from './message-input';
+import type { Chat } from '../directory/chat-list';
 
 interface ChatContainerProps {
   chat: Chat | null;

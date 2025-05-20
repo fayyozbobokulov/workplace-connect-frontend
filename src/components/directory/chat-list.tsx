@@ -9,15 +9,14 @@ import {
   Typography, 
   InputBase, 
   Badge,
-  Divider,
   styled,
   ListItem,
   Button,
   Snackbar,
   Alert
 } from '@mui/material';
-import ChatHeader from './ChatHeader';
-import AddFriendDialog from './AddFriendDialog';
+import ChatHeader from './chat-header';
+import AddFriendDialog from './add-friend.dialog';
 import SearchIcon from '@mui/icons-material/Search';
 
 // Import or define the User interface
@@ -28,7 +27,6 @@ interface User {
   avatar: string;
 }
 import AddIcon from '@mui/icons-material/Add';
-import PushPinIcon from '@mui/icons-material/PushPin';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 // Define chat interface
@@ -85,12 +83,58 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
+  // Helper function to convert timestamp to comparable value
+  const getTimeValue = (timestamp: string): number => {
+    // Handle relative timestamps like 'Yesterday'
+    if (timestamp === 'Yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return yesterday.getTime();
+    }
+    
+    // Handle time formats like '10:30 AM' or '04:50 PM'
+    const timeRegex = /(\d+):(\d+)\s*(AM|PM)/i;
+    const match = timestamp.match(timeRegex);
+    
+    if (match) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [_, hours, minutes, period] = match;
+      const date = new Date();
+      let hour = parseInt(hours, 10);
+      
+      // Convert to 24-hour format
+      if (period.toUpperCase() === 'PM' && hour < 12) {
+        hour += 12;
+      } else if (period.toUpperCase() === 'AM' && hour === 12) {
+        hour = 0;
+      }
+      
+      date.setHours(hour, parseInt(minutes, 10), 0, 0);
+      return date.getTime();
+    }
+    
+    // Default fallback
+    return 0;
+  };
+  
+  // Sort function for chats based on timestamp
+  const sortByLatestMessage = (a: Chat, b: Chat): number => {
+    return getTimeValue(b.timestamp) - getTimeValue(a.timestamp);
+  };
+
+  // Filter chats based on search query
   const filteredChats = chats.filter(chat => 
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const pinnedChats = filteredChats.filter(chat => chat.isPinned);
-  const regularChats = filteredChats.filter(chat => !chat.isPinned);
+  // Sort and separate pinned and regular chats
+  const pinnedChats = filteredChats
+    .filter(chat => chat.isPinned)
+    .sort(sortByLatestMessage);
+    
+  const regularChats = filteredChats
+    .filter(chat => !chat.isPinned)
+    .sort(sortByLatestMessage);
 
   const handleOpenDialog = () => {
     setDialogOpen(true);
@@ -176,21 +220,6 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
 
       {/* Chat List Section */}
       <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {/* Pinned Chats Header */}
-        {pinnedChats.length > 0 && (
-          <Box sx={{ 
-            px: 2, 
-            py: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}>
-            <PushPinIcon sx={{ fontSize: '16px', color: 'text.secondary' }} />
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
-              PINNED CHATS
-            </Typography>
-          </Box>
-        )}
         
         {/* All Messages Header (only shown if there are pinned chats) */}
         {pinnedChats.length > 0 && regularChats.length > 0 && (
@@ -228,74 +257,6 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
           }} 
           disablePadding
         >
-          {/* Pinned Chats */}
-          {pinnedChats.map((chat) => (
-            <ListItem 
-              key={chat.id}
-              disablePadding
-              sx={{
-                bgcolor: selectedChatId === chat.id ? '#e3f2fd' : 'transparent',
-                '&:hover': { bgcolor: '#f0f7ff' }
-              }}
-            >
-              <ListItemButton
-                selected={selectedChatId === chat.id}
-                onClick={() => onSelectChat(chat.id)}
-                sx={{ 
-                  px: 2, 
-                  py: 1,
-                  width: '100%'
-                }}
-              >
-                <ListItemAvatar>
-                  {chat.online ? (
-                    <StyledBadge
-                      overlap="circular"
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                      variant="dot"
-                    >
-                      <Avatar alt={chat.name} src={chat.avatar} />
-                    </StyledBadge>
-                  ) : (
-                    <Avatar alt={chat.name} src={chat.avatar} />
-                  )}
-                </ListItemAvatar>
-                <ListItemText 
-                  primary={chat.name}
-                  secondary={
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      noWrap
-                      sx={{ 
-                        fontWeight: chat.unread ? 'bold' : 'normal',
-                        color: chat.unread ? 'text.primary' : 'text.secondary'
-                      }}
-                    >
-                      {chat.lastMessage}
-                    </Typography>
-                  }
-                  sx={{ margin: 0 }}
-                />
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', ml: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    {chat.timestamp}
-                  </Typography>
-                  {chat.unread && (
-                    <Badge 
-                      badgeContent={chat.unread} 
-                      color="primary" 
-                      sx={{ mt: 0.5 }}
-                    />
-                  )}
-                </Box>
-              </ListItemButton>
-            </ListItem>
-          ))}
-          
-          {/* Divider between pinned and regular chats */}
-          {pinnedChats.length > 0 && regularChats.length > 0 && <Divider />}
-          
           {/* Regular Chats */}
           {regularChats.map((chat) => (
             <ListItem 
