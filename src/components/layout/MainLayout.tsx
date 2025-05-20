@@ -24,7 +24,17 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </IconButton>
           )}
           
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold', color: '#1976d2' }}>
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1, 
+              fontWeight: 600,
+              background: 'linear-gradient(90deg, #1976d2 0%, #21CBF3 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
             Workplace Connect
           </Typography>
           

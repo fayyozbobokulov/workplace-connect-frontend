@@ -11,7 +11,7 @@ import {
   IconButton, 
   ListItemButton
 } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -51,11 +51,7 @@ const ChatHeader = () => {
         onClick={toggleDrawer}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <img 
-            src="/icon.webp" 
-            alt="Workplace Connect" 
-            style={{ width: '32px', height: '32px', borderRadius: '8px' }} 
-          />
+          <MenuIcon sx={{ color: 'text.secondary', fontSize: '24px' }} />
           <Typography 
             variant="h6" 
             sx={{ 
@@ -69,7 +65,7 @@ const ChatHeader = () => {
             Workplace Connect
           </Typography>
         </Box>
-        <SettingsIcon sx={{ color: 'text.secondary', fontSize: '20px' }} />
+        
       </Box>
 
       {/* Settings Drawer */}

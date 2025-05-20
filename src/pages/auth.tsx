@@ -69,7 +69,17 @@ const Auth = () => {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Typography component="h1" variant="h4" sx={{ mb: 4 }}>
+        <Typography 
+          component="h1" 
+          variant="h4" 
+          sx={{ 
+            mb: 4, 
+            fontWeight: 600,
+            background: 'linear-gradient(90deg, #1976d2 0%, #21CBF3 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}
+        >
           Workplace Connect
         </Typography>
         
