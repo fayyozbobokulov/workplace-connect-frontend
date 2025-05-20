@@ -12,10 +12,21 @@ import {
   Divider,
   styled,
   ListItem,
-  Button
+  Button,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import ChatHeader from './ChatHeader';
+import AddFriendDialog from './AddFriendDialog';
 import SearchIcon from '@mui/icons-material/Search';
+
+// Import or define the User interface
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+}
 import AddIcon from '@mui/icons-material/Add';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -69,6 +80,10 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 
 const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const filteredChats = chats.filter(chat => 
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -76,6 +91,29 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
 
   const pinnedChats = filteredChats.filter(chat => chat.isPinned);
   const regularChats = filteredChats.filter(chat => !chat.isPinned);
+
+  const handleOpenDialog = () => {
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+  };
+
+  const handleAddFriend = (user: User | null, email?: string) => {
+    if (user) {
+      setSnackbarMessage(`Friend request sent to ${user.name}`);
+      setSnackbarSeverity('success');
+    } else if (email) {
+      setSnackbarMessage(`Invitation sent to ${email}`);
+      setSnackbarSeverity('success');
+    }
+    setSnackbarOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
 
   return (
     <Box sx={{ 
@@ -120,6 +158,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
         <Button
           variant="contained"
           color="primary"
+          onClick={handleOpenDialog}
           sx={{ 
             minWidth: '40px', 
             width: '40px', 
@@ -323,6 +362,30 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
           ))}
         </List>
       </Box>
+      
+      {/* Add Friend Dialog */}
+      <AddFriendDialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog} 
+        onAddFriend={handleAddFriend} 
+      />
+      
+      {/* Notification Snackbar */}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbarSeverity} 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

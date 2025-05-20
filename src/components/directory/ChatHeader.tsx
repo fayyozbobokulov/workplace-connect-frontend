@@ -7,8 +7,7 @@ const ChatHeader = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'space-between',
-      borderBottom: '1px solid #f0f0f0',
-      height: '64px'
+      borderBottom: '1px solid #f0f0f0'
     }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <img 
