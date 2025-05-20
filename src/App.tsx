@@ -3,9 +3,10 @@ import { AuthProvider, ProtectedRoute, PublicRoute } from './components/auth/aut
 
 // Import pages
 import Auth from './pages/auth';
+import Home from './pages/home';
+import MainLayout from './components/layout/MainLayout';
 
 // Placeholder components for protected routes
-const Home = () => <div>Home Page</div>;
 const Messages = () => <div>Messages Page</div>;
 const Account = () => <div>Account Page</div>;
 
@@ -24,26 +25,34 @@ function App() {
           {/* Protected routes - require authentication */}
           <Route path="/" element={
             <ProtectedRoute>
-              <Home />
+              <MainLayout>
+                <Home />
+              </MainLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/messages" element={
             <ProtectedRoute>
-              <Messages />
+              <MainLayout>
+                <Messages />
+              </MainLayout>
             </ProtectedRoute>
           } />
           
           <Route path="/account" element={
             <ProtectedRoute>
-              <Account />
+              <MainLayout>
+                <Account />
+              </MainLayout>
             </ProtectedRoute>
           } />
           
           {/* Catch all route - redirect to home */}
           <Route path="*" element={
             <ProtectedRoute>
-              <Home />
+              <MainLayout>
+                <Home />
+              </MainLayout>
             </ProtectedRoute>
           } />
         </Routes>
