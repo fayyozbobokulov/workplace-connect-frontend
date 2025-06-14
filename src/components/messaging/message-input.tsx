@@ -7,8 +7,8 @@ import {
   Tooltip
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
-import MicIcon from '@mui/icons-material/Mic';
+//import AttachFileIcon from '@mui/icons-material/AttachFile';
+//import MicIcon from '@mui/icons-material/Mic';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
 
 interface MessageInputProps {
@@ -60,7 +60,7 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
           maxRows={4}
         />
         
-        <Tooltip title="Attach file">
+        {/*<Tooltip title="Attach file">
           <IconButton sx={{ p: '10px' }}>
             <AttachFileIcon />
           </IconButton>
@@ -70,7 +70,7 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
           <IconButton sx={{ p: '10px' }}>
             <MicIcon />
           </IconButton>
-        </Tooltip>
+        </Tooltip>*/}
         
         <Tooltip title="Send">
           <IconButton 
