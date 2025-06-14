@@ -2,13 +2,13 @@ import {
   Box, 
   Avatar, 
   Typography, 
-  IconButton, 
+  //IconButton, 
   styled,
   Badge
 } from '@mui/material';
-import CallIcon from '@mui/icons-material/Call';
-import VideocamIcon from '@mui/icons-material/Videocam';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+//import CallIcon from '@mui/icons-material/Call';
+//import VideocamIcon from '@mui/icons-material/Videocam';
+//import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface ChatHeaderProps {
   name: string;
@@ -88,7 +88,7 @@ const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
         </Box>
       </Box>
       <Box>
-        <IconButton>
+        {/*<IconButton>
           <CallIcon />
         </IconButton>
         <IconButton>
@@ -96,7 +96,7 @@ const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
         </IconButton>
         <IconButton>
           <MoreVertIcon />
-        </IconButton>
+        </IconButton>*/}
       </Box>
     </Box>
   );

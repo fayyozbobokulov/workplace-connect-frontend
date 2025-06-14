@@ -26,6 +26,14 @@ interface User {
   email: string;
   avatar: string;
 }
+export interface Friend {
+  id: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  timestamp: string;
+  online?: boolean;
+}
 import AddIcon from '@mui/icons-material/Add';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
@@ -45,6 +53,7 @@ interface ChatListProps {
   chats: Chat[];
   selectedChatId: string | null;
   onSelectChat: (chatId: string) => void;
+  friends: Friend[];
 }
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
@@ -76,7 +85,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
-const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
+const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -176,6 +185,9 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
   const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
+  const friendsWithoutChat = (friends || []).filter(
+    (friend) => !chats.some((chat) => chat.id === friend.id)
+  );
 
   return (
     <Box sx={{ 
@@ -346,6 +358,75 @@ const ChatList = ({ chats, selectedChatId, onSelectChat }: ChatListProps) => {
                     )}
                   </Box>
                 </Box>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+
+        <Box sx={{ 
+          px: 2, 
+          py: 1.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          borderTop: '1px solid #f0f0f0',
+          mt: 1
+        }}>
+          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, fontSize: '0.75rem' }}>
+            START NEW CONVERSATION
+          </Typography>
+        </Box>
+        <List 
+          sx={{ 
+            flex: 1, 
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: 'rgba(0,0,0,0.2)',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(0,0,0,0.05)',
+            }
+          }}
+        >
+          {friendsWithoutChat.map((friend) => (
+            <ListItem 
+              key={friend.id}
+              disablePadding
+              sx={{
+                '&:hover': { bgcolor: '#f0f7ff' }
+              }}
+            >
+              <ListItemButton
+                onClick={() => onSelectChat(friend.id)}
+                sx={{ 
+                  px: 2, 
+                  py: 1,
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <ListItemAvatar>
+                  {friend.online ? (
+                    <StyledBadge
+                      overlap="circular"
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      variant="dot"
+                    >
+                      <Avatar alt={friend.name} src={friend.avatar} />
+                    </StyledBadge>
+                  ) : (
+                    <Avatar alt={friend.name} src={friend.avatar} />
+                  )}
+                </ListItemAvatar>
+                <ListItemText 
+                  primary={friend.name}
+                  sx={{ margin: 0 }}
+                />
               </ListItemButton>
             </ListItem>
           ))}
