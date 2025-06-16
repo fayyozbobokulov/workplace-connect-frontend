@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useAuth } from '../components/auth/auth.provider';
-import ChatList, { type Chat } from '../components/directory/chat-list';
+import ChatList, { type Chat,type Friend } from '../components/directory/chat-list';
 import ChatContainer from '../components/messaging/chat-container';
 import type { Message } from '../components/messaging/message-window';
 
@@ -84,7 +84,57 @@ const mockChats: Chat[] = [
     online: false
   }
 ];
-
+// Mock data for friends
+const mockFriends: Friend[] = [
+  {
+    id: '10',
+    name: 'Emma Johnson',
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: true
+  },
+  {
+    id: '11',
+    name: 'Noah Brown',
+    avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: false
+  },
+  {
+    id: '12',
+    name: 'Ava Davis',
+    avatar: 'https://randomuser.me/api/portraits/women/46.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: true
+  },
+  {
+    id: '13',
+    name: 'William Garcia',
+    avatar: 'https://randomuser.me/api/portraits/men/47.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: false
+  },
+  {
+    id: '14',
+    name: 'Sophia Martinez',
+    avatar: 'https://randomuser.me/api/portraits/women/48.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: true
+  },
+  {
+    id: '15',
+    name: 'James Rodriguez',
+    avatar: 'https://randomuser.me/api/portraits/men/49.jpg',
+    lastMessage:'',
+    timestamp: '',
+    online: false
+  }
+];
 // Mock conversation with Grace Miller
 const mockConversation: Record<string, Message[]> = {
   '3': [
@@ -186,6 +236,7 @@ const Home = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<Chat[]>(mockChats);
+  const [friends, setFriends] = useState<Friend[]>([]);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -213,10 +264,18 @@ const Home = () => {
     }
   }, [selectedChatId]);
 
+  useEffect(() => {
+    // Fetch friends from API
+    //fetchFriends().then((data) => setFriends(data));
+    setFriends(mockFriends);
+  }, []);
+
   const handleSelectChat = (chatId: string) => {
+    console.log('Selected Chat ID:',chatId)
     setSelectedChatId(chatId);
   };
 
+  const selectedChat = chats.find(chat => chat.id === selectedChatId)||friends.find(friend=> friend.id === selectedChatId) || null;
   const handleSendMessage = (chatId: string, text: string) => {
     const newMessage: Message = {
       id: `m${Date.now()}`,
@@ -229,19 +288,38 @@ const Home = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isOwn: true
     };
-
+  
     // Update messages state
     setMessages(prevMessages => [...prevMessages, newMessage]);
-
-    // Update chat list with new message
-    setChats(prevChats => 
-      prevChats.map(chat => 
-        chat.id === chatId 
-          ? { ...chat, lastMessage: text, timestamp: newMessage.timestamp }
-          : chat
-      )
-    );
-
+  
+    // Check if the chat already exists in the chat list
+    const chatExists = chats.some(chat => chat.id === chatId);
+  
+    if (chatExists) {
+      // Update existing chat with the new message
+      setChats(prevChats => 
+        prevChats.map(chat => 
+          chat.id === chatId 
+            ? { ...chat, lastMessage: text, timestamp: newMessage.timestamp }
+            : chat
+        )
+      );
+    } else {
+      // Add a new chat for the friend
+      const friend = friends.find(friend => friend.id === chatId);
+      if (friend) {
+        const newChat: Chat = {
+          id: friend.id,
+          name: friend.name,
+          avatar: friend.avatar,
+          lastMessage: text,
+          timestamp: newMessage.timestamp,
+          online: friend.online
+        };
+        setChats(prevChats => [newChat, ...prevChats]); // Add the new chat to the top of the list
+      }
+    }
+  
     // Add to mock conversation for persistence during the session
     if (mockConversation[chatId]) {
       mockConversation[chatId].push(newMessage);
@@ -249,9 +327,6 @@ const Home = () => {
       mockConversation[chatId] = [newMessage];
     }
   };
-
-  const selectedChat = chats.find(chat => chat.id === selectedChatId) || null;
-
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -275,7 +350,8 @@ const Home = () => {
         <ChatList 
           chats={chats} 
           selectedChatId={selectedChatId} 
-          onSelectChat={handleSelectChat} 
+          onSelectChat={handleSelectChat}
+          friends={friends} 
         />
       </Box>
 
