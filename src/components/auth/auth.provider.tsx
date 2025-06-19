@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (sessionStr) {
           const storedSession: Session = JSON.parse(sessionStr);
           setSession(storedSession);
-          setUser(storedSession.user);
+          setUser(storedSession);
           authService.setupAxiosInterceptors(storedSession.token);
         }
       } catch (error) {
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const newSession = await authService.signIn(email, password);
       setSession(newSession);
-      setUser(newSession.user);
+      setUser(newSession);
       
       // Store session in localStorage
       localStorage.setItem('session', JSON.stringify(newSession));
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const newSession = await authService.signUp(firstName, lastName, email, password, confirmPassword);
       setSession(newSession);
-      setUser(newSession.user);
+      setUser(newSession);
       
       // Store session in localStorage
       localStorage.setItem('session', JSON.stringify(newSession));

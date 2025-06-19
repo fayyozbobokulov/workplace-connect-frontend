@@ -31,7 +31,7 @@ const ChatContainer = ({ chat, currentUserId, messages, onSendMessage }: ChatCon
   }
 
   const handleSendMessage = (message: string) => {
-    onSendMessage(chat.id, message);
+    onSendMessage(chat._id, message);
   };
 
   return (

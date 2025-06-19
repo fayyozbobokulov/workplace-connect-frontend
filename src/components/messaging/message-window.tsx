@@ -2,12 +2,13 @@ import { useRef, useEffect } from 'react';
 import { Box, Typography, Avatar } from '@mui/material';
 
 export interface Message {
-  id: string;
+  _id: string;
   text: string;
   sender: {
-    id: string;
-    name: string;
-    avatar: string;
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
   };
   timestamp: string;
   isOwn: boolean;
@@ -36,7 +37,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
     const currentTimestamp = message.timestamp.split(' ')[0]; // Just compare the time part
     
     // Start a new group if sender changes or time gap is significant
-    if (message.sender.id !== lastSenderId || currentTimestamp !== lastTimestamp) {
+    if (message.sender._id !== lastSenderId || currentTimestamp !== lastTimestamp) {
       if (currentGroup.length > 0) {
         groupedMessages.push([...currentGroup]);
         currentGroup = [];
@@ -44,7 +45,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
     }
     
     currentGroup.push(message);
-    lastSenderId = message.sender.id;
+    lastSenderId = message.sender._id;
     lastTimestamp = currentTimestamp;
     
     // Push the last group
@@ -66,7 +67,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
       }}
     >
       {groupedMessages.map((group, groupIndex) => {
-        const isOwn = group[0].sender.id === currentUserId;
+        const isOwn = group[0].sender._id === currentUserId;
         
         return (
           <Box 
@@ -82,8 +83,8 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
             <Box sx={{ display: 'flex', mb: 1, alignItems: 'flex-end' }}>
               {!isOwn && (
                 <Avatar 
-                  src={group[0].sender.avatar} 
-                  alt={group[0].sender.name}
+                  src={group[0].sender.profilePicture} 
+                  alt={`${group[0].sender.firstName} ${group[0].sender.lastName}`}
                   sx={{ width: 32, height: 32, mr: 1 }}
                 />
               )}
@@ -92,7 +93,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                   {!isOwn && (
                     <Typography variant="subtitle2" sx={{ mr: 1 }}>
-                      {group[0].sender.name}
+                      {`${group[0].sender.firstName} ${group[0].sender.lastName}`}
                     </Typography>
                   )}
                   <Typography variant="caption" color="text.secondary">
@@ -103,7 +104,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   {group.map((message) => (
                     <Box
-                      key={message.id}
+                      key={message._id}
                       sx={{
                         bgcolor: isOwn ? '#1976d2' : '#fff',
                         color: isOwn ? '#fff' : 'inherit',
@@ -120,8 +121,8 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
               
               {isOwn && (
                 <Avatar 
-                  src={group[0].sender.avatar} 
-                  alt={group[0].sender.name}
+                  src={group[0].sender.profilePicture} 
+                  alt={`${group[0].sender.firstName} ${group[0].sender.lastName}`}
                   sx={{ width: 32, height: 32, ml: 1 }}
                 />
               )}

@@ -12,8 +12,7 @@ export interface User {
 }
 
 // Define session interface
-export interface Session {
-  user: User;
+export interface Session extends User {
   token: string;
 }
 
@@ -30,12 +29,10 @@ class AuthService {
       // For testing purposes, return mock data instead of throwing the error
       console.log('Using mock data for testing purposes');
       return {
-        user: {
-          _id: 'test-user-id-123',
-          firstName: 'Test',
-          lastName: 'User',
-          email: email
-        },
+        _id: 'test-user-id-123',
+        firstName: 'Test',
+        lastName: 'User',
+        email: email,
         token: 'mock-jwt-token-for-testing-purposes'
       };
     }

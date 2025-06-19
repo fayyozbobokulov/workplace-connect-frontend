@@ -15,22 +15,23 @@ import {
 
 // Mock user data for autocomplete
 const mockUsers = [
-  { id: 'u1', name: 'Emma Thompson', email: 'emma.thompson@example.com', avatar: 'https://randomuser.me/api/portraits/women/45.jpg' },
-  { id: 'u2', name: 'Michael Chen', email: 'michael.chen@example.com', avatar: 'https://randomuser.me/api/portraits/men/42.jpg' },
-  { id: 'u3', name: 'Sarah Johnson', email: 'sarah.johnson@example.com', avatar: 'https://randomuser.me/api/portraits/women/63.jpg' },
-  { id: 'u4', name: 'David Wilson', email: 'david.wilson@example.com', avatar: 'https://randomuser.me/api/portraits/men/57.jpg' },
-  { id: 'u5', name: 'Jessica Brown', email: 'jessica.brown@example.com', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
+  { _id: 'u1', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/45.jpg' },
+  { _id: 'u2', firstName: 'Michael', lastName: 'Chen', email: 'michael.chen@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/42.jpg' },
+  { _id: 'u3', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.johnson@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/63.jpg' },
+  { _id: 'u4', firstName: 'David', lastName: 'Wilson', email: 'david.wilson@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/57.jpg' },
+  { _id: 'u5', firstName: 'Jessica', lastName: 'Brown', email: 'jessica.brown@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/33.jpg' }
 ];
 
 interface User {
-  id: string;
-  name: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  avatar: string;
+  profilePicture?: string;
 }
 
 // Type for selected item - can be either a User or a custom email entry
-type SelectedItem = User | { id: string; email: string; isCustomEmail: true };
+type SelectedItem = User | { _id: string; email: string; isCustomEmail: true };
 
 interface AddFriendDialogProps {
   open: boolean;
@@ -68,14 +69,14 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
   const matchesExistingUser = useMemo(() => {
     return mockUsers.some(user => 
       user.email.toLowerCase() === inputValue.toLowerCase() ||
-      user.name.toLowerCase() === inputValue.toLowerCase()
+      `${user.firstName} ${user.lastName}`.toLowerCase() === inputValue.toLowerCase()
     );
   }, [inputValue]);
   
   const handleAddCustomEmail = () => {
     if (isNewValidEmail) {
       const newEmailItem: SelectedItem = {
-        id: `email-${Date.now()}`,
+        _id: `email-${Date.now()}`,
         email: inputValue,
         isCustomEmail: true
       };
@@ -85,8 +86,8 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
     }
   };
   
-  const handleRemoveItem = (itemId: string) => {
-    setSelectedItems(prev => prev.filter(item => item.id !== itemId));
+  const handleRemoveItem = (_id: string) => {
+    setSelectedItems(prev => prev.filter(item => item._id !== _id));
   };
   
   const handleAddFriend = () => {
@@ -115,11 +116,11 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
               
               return (
                 <Chip
-                  key={item.id}
+                  key={item._id}
                   label={email}
                   color={isExistingUser ? 'primary' : 'default'}
-                  onDelete={() => handleRemoveItem(item.id)}
-                  avatar={isExistingUser ? <Avatar src={(item as User).avatar} /> : undefined}
+                  onDelete={() => handleRemoveItem(item._id)}
+                  avatar={isExistingUser ? <Avatar src={(item as User).profilePicture} /> : undefined}
                 />
               );
             })}
@@ -130,9 +131,9 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
           id="friend-search"
           options={mockUsers.filter(user => 
             // Filter out users that are already selected
-            !selectedItems.some(item => !('isCustomEmail' in item) && item.id === user.id)
+            !selectedItems.some(item => !('isCustomEmail' in item) && item._id === user._id)
           )}
-          getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
+          getOptionLabel={(option) => typeof option === 'string' ? option : `${option.firstName} ${option.lastName}`}
           renderOption={(props, option) => {
             // Since we're using the options array which only contains User objects,
             // we know option is a User here, but TypeScript needs the check
@@ -140,9 +141,9 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
             
             return (
               <Box component="li" sx={{ '& > img': { mr: 2, flexShrink: 0 } }} {...props}>
-                <Avatar src={option.avatar} sx={{ width: 32, height: 32, mr: 2 }} />
+                <Avatar src={option.profilePicture} sx={{ width: 32, height: 32, mr: 2 }} />
                 <Box>
-                  <Typography variant="body1">{option.name}</Typography>
+                  <Typography variant="body1">{`${option.firstName} ${option.lastName}`}</Typography>
                   <Typography variant="body2" color="text.secondary">{option.email}</Typography>
                 </Box>
               </Box>
@@ -180,7 +181,7 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
             if (newValue && typeof newValue === 'object') {
               const user = newValue as User;
               // Check if already selected
-              if (!selectedItems.some(item => !('isCustomEmail' in item) && item.id === user.id)) {
+              if (!selectedItems.some(item => !('isCustomEmail' in item) && item._id === user._id)) {
                 setSelectedItems(prev => [...prev, user]);
               }
               setInputValue('');

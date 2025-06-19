@@ -27,7 +27,8 @@ const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const { signOut, session } = useAuth();
-  const user = session?.user;
+
+  const user = session;
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -123,26 +124,11 @@ const ChatHeader = () => {
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1 }}>
             <FilePicker onFileSelect={handleFileSelect}>
-              {profileImage ? (
-                <UploadedPicturePreview imageUrl={profileImage} alt="Profile picture" />
-              ) : (
-                <Box 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    borderRadius: '50%', 
-                    bgcolor: 'primary.main', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '2rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
-                </Box>
-              )}
+              <UploadedPicturePreview 
+                imageUrl={profileImage || undefined} 
+                alt="Profile picture"
+                fallbackText={user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+              />
             </FilePicker>
             {profileImage && (
               <IconButton

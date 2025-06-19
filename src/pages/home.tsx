@@ -8,7 +8,7 @@ import type { Message } from '../components/messaging/message-window';
 // Mock data for chats
 const mockChats: Chat[] = [
   {
-    id: '1',
+    _id: '1',
     name: 'Liam Anderson',
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
     lastMessage: 'typing...',
@@ -17,7 +17,7 @@ const mockChats: Chat[] = [
     isPinned: true
   },
   {
-    id: '2',
+    _id: '2',
     name: 'Lucas Williams',
     avatar: 'https://randomuser.me/api/portraits/men/68.jpg',
     lastMessage: 'Hey, how\'s it going?',
@@ -26,7 +26,7 @@ const mockChats: Chat[] = [
     isPinned: true
   },
   {
-    id: '3',
+    _id: '3',
     name: 'Grace Miller',
     avatar: 'https://randomuser.me/api/portraits/women/54.jpg',
     lastMessage: 'Can\'t wait for the weekend!',
@@ -35,7 +35,7 @@ const mockChats: Chat[] = [
     isPinned: true
   },
   {
-    id: '4',
+    _id: '4',
     name: 'Sophia Chen',
     avatar: 'https://randomuser.me/api/portraits/women/17.jpg',
     lastMessage: 'Remember that concert last year?',
@@ -43,7 +43,7 @@ const mockChats: Chat[] = [
     online: false
   },
   {
-    id: '5',
+    _id: '5',
     name: 'Benjamin Knight',
     avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
     lastMessage: 'Just got back from a hiking trip!',
@@ -52,7 +52,7 @@ const mockChats: Chat[] = [
     online: false
   },
   {
-    id: '6',
+    _id: '6',
     name: 'Olivia Foster',
     avatar: 'https://randomuser.me/api/portraits/women/85.jpg',
     lastMessage: 'Excited for the upcoming vacation!',
@@ -60,7 +60,7 @@ const mockChats: Chat[] = [
     online: false
   },
   {
-    id: '7',
+    _id: '7',
     name: 'Jackson Adams',
     avatar: 'https://randomuser.me/api/portraits/men/33.jpg',
     lastMessage: 'Looking forward to the weekend!',
@@ -68,7 +68,7 @@ const mockChats: Chat[] = [
     online: false
   },
   {
-    id: '8',
+    _id: '8',
     name: 'Ethan Sullivan',
     avatar: 'https://randomuser.me/api/portraits/men/91.jpg',
     lastMessage: 'Finished reading a captivating novel.',
@@ -76,7 +76,7 @@ const mockChats: Chat[] = [
     online: false
   },
   {
-    id: '9',
+    _id: '9',
     name: 'Ethan Sullivan',
     avatar: 'https://randomuser.me/api/portraits/men/91.jpg',
     lastMessage: 'Finished reading a captivating novel.',
@@ -87,7 +87,7 @@ const mockChats: Chat[] = [
 // Mock data for friends
 const mockFriends: Friend[] = [
   {
-    id: '10',
+    _id: '10',
     name: 'Emma Johnson',
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
     lastMessage:'',
@@ -95,7 +95,7 @@ const mockFriends: Friend[] = [
     online: true
   },
   {
-    id: '11',
+    _id: '11',
     name: 'Noah Brown',
     avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
     lastMessage:'',
@@ -103,7 +103,7 @@ const mockFriends: Friend[] = [
     online: false
   },
   {
-    id: '12',
+    _id: '12',
     name: 'Ava Davis',
     avatar: 'https://randomuser.me/api/portraits/women/46.jpg',
     lastMessage:'',
@@ -111,7 +111,7 @@ const mockFriends: Friend[] = [
     online: true
   },
   {
-    id: '13',
+    _id: '13',
     name: 'William Garcia',
     avatar: 'https://randomuser.me/api/portraits/men/47.jpg',
     lastMessage:'',
@@ -119,7 +119,7 @@ const mockFriends: Friend[] = [
     online: false
   },
   {
-    id: '14',
+    _id: '14',
     name: 'Sophia Martinez',
     avatar: 'https://randomuser.me/api/portraits/women/48.jpg',
     lastMessage:'',
@@ -127,7 +127,7 @@ const mockFriends: Friend[] = [
     online: true
   },
   {
-    id: '15',
+    _id: '15',
     name: 'James Rodriguez',
     avatar: 'https://randomuser.me/api/portraits/men/49.jpg',
     lastMessage:'',
@@ -139,78 +139,85 @@ const mockFriends: Friend[] = [
 const mockConversation: Record<string, Message[]> = {
   '3': [
     {
-      id: 'm1',
+      _id: 'm1',
       text: 'Hi Jack! I\'m doing well, thanks. Can\'t wait for the weekend!',
       sender: {
-        id: '3',
-        name: 'Grace Miller',
-        avatar: 'https://randomuser.me/api/portraits/women/54.jpg'
+        _id: '3',
+        firstName: 'Grace',
+        lastName: 'Miller',
+        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: false
     },
     {
-      id: 'm2',
+      _id: 'm2',
       text: 'Hey Grace, how\'s it going?',
       sender: {
-        id: 'current-user',
-        name: 'Jack Raymonds',
-        avatar: 'https://randomuser.me/api/portraits/men/11.jpg'
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: true
     },
     {
-      id: 'm3',
+      _id: 'm3',
       text: 'I know, right? Weekend plans are the best. Any exciting plans on your end?',
       sender: {
-        id: 'current-user',
-        name: 'Jack Raymonds',
-        avatar: 'https://randomuser.me/api/portraits/men/11.jpg'
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: true
     },
     {
-      id: 'm4',
+      _id: 'm4',
       text: 'Absolutely! I\'m thinking of going for a hike on Saturday. How about you?',
       sender: {
-        id: '3',
-        name: 'Grace Miller',
-        avatar: 'https://randomuser.me/api/portraits/women/54.jpg'
+        _id: '3',
+        firstName: 'Grace',
+        lastName: 'Miller',
+        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: false
     },
     {
-      id: 'm5',
+      _id: 'm5',
       text: 'Hiking sounds amazing! I might catch up on some reading and also meet up with a few friends on Sunday.',
       sender: {
-        id: 'current-user',
-        name: 'Jack Raymonds',
-        avatar: 'https://randomuser.me/api/portraits/men/11.jpg'
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: true
     },
     {
-      id: 'm6',
+      _id: 'm6',
       text: 'That sounds like a great plan! Excited 😊',
       sender: {
-        id: '3',
-        name: 'Grace Miller',
-        avatar: 'https://randomuser.me/api/portraits/women/54.jpg'
+        _id: '3',
+        firstName: 'Grace',
+        lastName: 'Miller',
+        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: false
     },
     {
-      id: 'm7',
+      _id: 'm7',
       text: 'Can\'t wait for the weekend!',
       sender: {
-        id: 'current-user',
-        name: 'Jack Raymonds',
-        avatar: 'https://randomuser.me/api/portraits/men/11.jpg'
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: true
@@ -218,12 +225,13 @@ const mockConversation: Record<string, Message[]> = {
   ],
   '2': [
     {
-      id: 'l1',
+      _id: 'l1',
       text: 'Hey, how\'s it going?',
       sender: {
-        id: '2',
-        name: 'Lucas Williams',
-        avatar: 'https://randomuser.me/api/portraits/men/68.jpg'
+        _id: '2',
+        firstName: 'Lucas',
+        lastName: 'Williams',
+        profilePicture: 'https://randomuser.me/api/portraits/men/68.jpg'
       },
       timestamp: '10:30 AM',
       isOwn: false
@@ -243,9 +251,10 @@ const Home = () => {
 
   // Current user mock data
   const currentUser = {
-    id: 'current-user',
-    name: user?.firstName ? `${user.firstName} ${user.lastName}` : 'Jack Raymonds',
-    avatar: 'https://randomuser.me/api/portraits/men/11.jpg'
+    _id: 'current-user',
+    firstName: user?.firstName ? user.firstName : 'Jack',
+    lastName: user?.lastName ? user.lastName : 'Raymonds',
+    profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
   };
 
   // Load messages when selected chat changes
@@ -256,7 +265,7 @@ const Home = () => {
       // Mark messages as read
       setChats(prevChats => 
         prevChats.map(chat => 
-          chat.id === selectedChatId ? { ...chat, unread: undefined } : chat
+          chat._id === selectedChatId ? { ...chat, unread: undefined } : chat
         )
       );
     } else {
@@ -275,15 +284,16 @@ const Home = () => {
     setSelectedChatId(chatId);
   };
 
-  const selectedChat = chats.find(chat => chat.id === selectedChatId)||friends.find(friend=> friend.id === selectedChatId) || null;
+  const selectedChat = chats.find(chat => chat._id === selectedChatId)||friends.find(friend=> friend._id === selectedChatId) || null;
   const handleSendMessage = (chatId: string, text: string) => {
     const newMessage: Message = {
-      id: `m${Date.now()}`,
+      _id: `m${Date.now()}`,
       text,
       sender: {
-        id: currentUser.id,
-        name: currentUser.name,
-        avatar: currentUser.avatar
+        _id: currentUser._id,
+        firstName: currentUser.firstName,
+        lastName: currentUser.lastName,
+        profilePicture: currentUser.profilePicture
       },
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isOwn: true
@@ -293,23 +303,23 @@ const Home = () => {
     setMessages(prevMessages => [...prevMessages, newMessage]);
   
     // Check if the chat already exists in the chat list
-    const chatExists = chats.some(chat => chat.id === chatId);
+    const chatExists = chats.some(chat => chat._id === chatId);
   
     if (chatExists) {
       // Update existing chat with the new message
       setChats(prevChats => 
         prevChats.map(chat => 
-          chat.id === chatId 
+          chat._id === chatId 
             ? { ...chat, lastMessage: text, timestamp: newMessage.timestamp }
             : chat
         )
       );
     } else {
       // Add a new chat for the friend
-      const friend = friends.find(friend => friend.id === chatId);
+      const friend = friends.find(friend => friend._id === chatId);
       if (friend) {
         const newChat: Chat = {
-          id: friend.id,
+          _id: friend._id,
           name: friend.name,
           avatar: friend.avatar,
           lastMessage: text,
@@ -364,7 +374,7 @@ const Home = () => {
       >
         <ChatContainer 
           chat={selectedChat} 
-          currentUserId={currentUser.id}
+          currentUserId={currentUser._id}
           messages={messages}
           onSendMessage={handleSendMessage}
         />

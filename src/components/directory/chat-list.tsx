@@ -21,13 +21,14 @@ import SearchIcon from '@mui/icons-material/Search';
 
 // Import or define the User interface
 interface User {
-  id: string;
-  name: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  avatar: string;
+  profilePicture?: string;
 }
 export interface Friend {
-  id: string;
+  _id: string;
   name: string;
   avatar: string;
   lastMessage: string;
@@ -39,7 +40,7 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 // Define chat interface
 export interface Chat {
-  id: string;
+  _id: string;
   name: string;
   avatar: string;
   lastMessage: string;
@@ -149,7 +150,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
   };
 
   // Type for selected item - can be either a User or a custom email entry
-  type SelectedItem = User | { id: string; email: string; isCustomEmail: true };
+  type SelectedItem = User | { _id: string; email: string; isCustomEmail: true };
 
   const handleAddFriend = (selections: SelectedItem[]) => {
     if (selections.length === 0) return;
@@ -165,7 +166,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
     } else if (existingUsers.length > 0) {
       if (existingUsers.length === 1) {
         const user = existingUsers[0] as User;
-        message = `Friend request sent to ${user.name}`;
+        message = `Friend request sent to ${user.firstName} ${user.lastName}`;
       } else {
         message = `Friend requests sent to ${existingUsers.length} users`;
       }
@@ -186,7 +187,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
     setSnackbarOpen(false);
   };
   const friendsWithoutChat = (friends || []).filter(
-    (friend) => !chats.some((chat) => chat.id === friend.id)
+    (friend) => !chats.some((chat) => chat._id === friend._id)
   );
 
   return (
@@ -288,16 +289,16 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
           {/* Regular Chats */}
           {regularChats.map((chat) => (
             <ListItem 
-              key={chat.id}
+              key={chat._id}
               disablePadding
               sx={{
-                bgcolor: selectedChatId === chat.id ? '#e3f2fd' : 'transparent',
+                bgcolor: selectedChatId === chat._id ? '#e3f2fd' : 'transparent',
                 '&:hover': { bgcolor: '#f0f7ff' }
               }}
             >
               <ListItemButton
-                selected={selectedChatId === chat.id}
-                onClick={() => onSelectChat(chat.id)}
+                selected={selectedChatId === chat._id}
+                onClick={() => onSelectChat(chat._id)}
                 sx={{ 
                   px: 2, 
                   py: 1,
@@ -394,14 +395,14 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
         >
           {friendsWithoutChat.map((friend) => (
             <ListItem 
-              key={friend.id}
+              key={friend._id}
               disablePadding
               sx={{
                 '&:hover': { bgcolor: '#f0f7ff' }
               }}
             >
               <ListItemButton
-                onClick={() => onSelectChat(friend.id)}
+                onClick={() => onSelectChat(friend._id)}
                 sx={{ 
                   px: 2, 
                   py: 1,
