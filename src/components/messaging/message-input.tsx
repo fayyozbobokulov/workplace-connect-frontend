@@ -10,6 +10,7 @@ import SendIcon from '@mui/icons-material/Send';
 //import AttachFileIcon from '@mui/icons-material/AttachFile';
 //import MicIcon from '@mui/icons-material/Mic';
 import InsertEmoticonIcon from '@mui/icons-material/InsertEmoticon';
+import EmojiPicker from 'emoji-picker-react';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -17,6 +18,7 @@ interface MessageInputProps {
 
 const MessageInput = ({ onSendMessage }: MessageInputProps) => {
   const [message, setMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -32,6 +34,14 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
     }
   };
 
+  const handleEmojiClick = (emoji: { emoji: string }) => {
+    setMessage((prev) => prev + emoji.emoji);
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker((prev) => !prev);
+  };
+
   return (
     <Box sx={{ p: 2, bgcolor: '#fff', borderTop: '1px solid #e0e0e0' }}>
       <Paper
@@ -45,11 +55,15 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
         }}
       >
         <Tooltip title="Add emoji">
-          <IconButton sx={{ p: '10px' }}>
+          <IconButton sx={{ p: '10px' }} onClick={toggleEmojiPicker}>
             <InsertEmoticonIcon />
           </IconButton>
         </Tooltip>
-        
+        {showEmojiPicker && (
+          <Box sx={{ position: 'absolute', bottom: '60px', zIndex: 1000 }}>
+            <EmojiPicker onEmojiClick={handleEmojiClick} />
+          </Box>
+        )}
         <InputBase
           sx={{ ml: 1, flex: 1 }}
           placeholder="Type message..."
