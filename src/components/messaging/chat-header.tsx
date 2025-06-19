@@ -2,14 +2,10 @@ import {
   Box, 
   Avatar, 
   Typography, 
-  //IconButton, 
   styled,
   Badge
 } from '@mui/material';
 import GroupAvatar from '../directory/components/GroupAvatar';
-//import CallIcon from '@mui/icons-material/Call';
-//import VideocamIcon from '@mui/icons-material/Videocam';
-//import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface Participant {
   _id: string;
@@ -106,15 +102,6 @@ const ChatHeader = ({ name, avatar, status, online, isGroup, participants }: Cha
         </Box>
       </Box>
       <Box>
-        {/*<IconButton>
-          <CallIcon />
-        </IconButton>
-        <IconButton>
-          <VideocamIcon />
-        </IconButton>
-        <IconButton>
-          <MoreVertIcon />
-        </IconButton>*/}
       </Box>
     </Box>
   );
