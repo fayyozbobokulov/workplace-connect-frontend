@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box } from '@mui/material';
 import ChatHeader from './chat-header';
 import AddFriendDialog from './add-friend.dialog';
+import CreateGroupDialog, { type GroupData } from './create-group.dialog';
 import ChatSearchBar from './components/ChatSearchBar';
 import SectionHeader from './components/SectionHeader';
 import ScrollableList from './components/ScrollableList';
@@ -24,12 +25,19 @@ export interface Friend {
 export interface Chat {
   _id: string;
   name: string;
-  avatar: string;
+  avatar?: string;
   lastMessage: string;
   timestamp: string;
   unread?: number;
   online?: boolean;
   isPinned?: boolean;
+  isGroup?: boolean;
+  participants?: Array<{
+    _id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture?: string;
+  }>;
 }
 
 interface ChatListProps {
@@ -37,11 +45,13 @@ interface ChatListProps {
   selectedChatId: string | null;
   onSelectChat: (chatId: string) => void;
   friends: Friend[];
+  onCreateGroup?: (groupData: GroupData) => void;
 }
 
-const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProps) => {
+const ChatList = ({ chats, selectedChatId, onSelectChat, friends, onCreateGroup }: ChatListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   
   const {
     snackbarOpen,
@@ -70,6 +80,14 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
     setDialogOpen(false);
   };
 
+  const handleOpenGroupDialog = () => {
+    setGroupDialogOpen(true);
+  };
+
+  const handleCloseGroupDialog = () => {
+    setGroupDialogOpen(false);
+  };
+
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
   };
@@ -92,6 +110,7 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         onAddFriend={handleOpenDialog}
+        onCreateGroup={handleOpenGroupDialog}
       />
 
       {/* Chat List Section */}
@@ -130,6 +149,13 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
         open={dialogOpen} 
         onClose={handleCloseDialog} 
         onAddFriend={handleAddFriend} 
+      />
+      
+      {/* Create Group Dialog */}
+      <CreateGroupDialog 
+        open={groupDialogOpen} 
+        onClose={handleCloseGroupDialog} 
+        onCreateGroup={onCreateGroup}
       />
       
       {/* Notification Snackbar */}

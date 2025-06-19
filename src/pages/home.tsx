@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useAuth } from '../components/auth/auth.provider';
 import ChatList, { type Chat,type Friend } from '../components/directory/chat-list';
+import { type GroupData } from '../components/directory/create-group.dialog';
 import ChatContainer from '../components/messaging/chat-container';
 import type { Message } from '../components/messaging/message-window';
 
@@ -82,6 +83,90 @@ const mockChats: Chat[] = [
     lastMessage: 'Finished reading a captivating novel.',
     timestamp: 'Yesterday',
     online: false
+  },
+  // Group chats
+  {
+    _id: 'group1',
+    name: 'Project Team',
+    lastMessage: 'Sarah: Let\'s schedule a meeting for tomorrow',
+    timestamp: '02:30 PM',
+    unread: 3,
+    isGroup: true,
+    participants: [
+      {
+        _id: 'user1',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
+      },
+      {
+        _id: 'user2',
+        firstName: 'Mike',
+        lastName: 'Chen',
+        profilePicture: 'https://randomuser.me/api/portraits/men/25.jpg'
+      },
+      {
+        _id: 'user3',
+        firstName: 'Emily',
+        lastName: 'Davis',
+        profilePicture: 'https://randomuser.me/api/portraits/women/30.jpg'
+      }
+    ]
+  },
+  {
+    _id: 'group2',
+    name: 'Family Chat',
+    lastMessage: 'Mom: Don\'t forget dinner on Sunday!',
+    timestamp: '11:45 AM',
+    unread: 1,
+    isGroup: true,
+    participants: [
+      {
+        _id: 'mom',
+        firstName: 'Linda',
+        lastName: 'Smith',
+        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
+      },
+      {
+        _id: 'dad',
+        firstName: 'Robert',
+        lastName: 'Smith',
+        profilePicture: 'https://randomuser.me/api/portraits/men/60.jpg'
+      }
+    ]
+  },
+  {
+    _id: 'group3',
+    name: 'Weekend Squad',
+    lastMessage: 'Alex: Beach volleyball this Saturday?',
+    timestamp: 'Yesterday',
+    isGroup: true,
+    participants: [
+      {
+        _id: 'alex',
+        firstName: 'Alex',
+        lastName: 'Thompson',
+        profilePicture: 'https://randomuser.me/api/portraits/men/35.jpg'
+      },
+      {
+        _id: 'jessica',
+        firstName: 'Jessica',
+        lastName: 'Wilson',
+        profilePicture: 'https://randomuser.me/api/portraits/women/40.jpg'
+      },
+      {
+        _id: 'david',
+        firstName: 'David',
+        lastName: 'Brown',
+        profilePicture: 'https://randomuser.me/api/portraits/men/50.jpg'
+      },
+      {
+        _id: 'lisa',
+        firstName: 'Lisa',
+        lastName: 'Garcia',
+        profilePicture: 'https://randomuser.me/api/portraits/women/45.jpg'
+      }
+    ]
   }
 ];
 // Mock data for friends
@@ -236,6 +321,95 @@ const mockConversation: Record<string, Message[]> = {
       timestamp: '10:30 AM',
       isOwn: false
     }
+  ],
+  // Group conversation examples
+  'group1': [
+    {
+      _id: 'gm1',
+      text: 'Hey everyone! How\'s the project coming along?',
+      sender: {
+        _id: 'user1',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
+      },
+      timestamp: '01:15 PM',
+      isOwn: false
+    },
+    {
+      _id: 'gm2',
+      text: 'Making good progress on the frontend!',
+      sender: {
+        _id: 'user2',
+        firstName: 'Mike',
+        lastName: 'Chen',
+        profilePicture: 'https://randomuser.me/api/portraits/men/25.jpg'
+      },
+      timestamp: '01:20 PM',
+      isOwn: false
+    },
+    {
+      _id: 'gm3',
+      text: 'Great! I\'ve finished the API documentation.',
+      sender: {
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+      },
+      timestamp: '01:25 PM',
+      isOwn: true
+    },
+    {
+      _id: 'gm4',
+      text: 'Let\'s schedule a meeting for tomorrow to review everything',
+      sender: {
+        _id: 'user1',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
+      },
+      timestamp: '02:30 PM',
+      isOwn: false
+    }
+  ],
+  'group2': [
+    {
+      _id: 'fm1',
+      text: 'Hi everyone! Hope you\'re all doing well 😊',
+      sender: {
+        _id: 'mom',
+        firstName: 'Linda',
+        lastName: 'Smith',
+        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
+      },
+      timestamp: '09:00 AM',
+      isOwn: false
+    },
+    {
+      _id: 'fm2',
+      text: 'Morning Mom! All good here.',
+      sender: {
+        _id: 'current-user',
+        firstName: 'Jack',
+        lastName: 'Raymonds',
+        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+      },
+      timestamp: '09:30 AM',
+      isOwn: true
+    },
+    {
+      _id: 'fm3',
+      text: 'Don\'t forget dinner on Sunday! 🍽️',
+      sender: {
+        _id: 'mom',
+        firstName: 'Linda',
+        lastName: 'Smith',
+        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
+      },
+      timestamp: '11:45 AM',
+      isOwn: false
+    }
   ]
 };
 
@@ -337,6 +511,32 @@ const Home = () => {
       mockConversation[chatId] = [newMessage];
     }
   };
+
+  const handleCreateGroup = (groupData: GroupData) => {
+    // Generate unique group ID
+    const groupId = `group-${Date.now()}`;
+    
+    // Create new group chat
+    const newGroupChat: Chat = {
+      _id: groupId,
+      name: groupData.name,
+      lastMessage: 'Group created',
+      timestamp: new Date().toISOString(),
+      isGroup: true,
+      participants: groupData.participants,
+      unread: 0
+    };
+
+    // Add group to chats list
+    setChats(prevChats => [newGroupChat, ...prevChats]);
+    
+    // Initialize empty conversation for the group
+    mockConversation[groupId] = [];
+    
+    // Auto-select the new group
+    setSelectedChatId(groupId);
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -362,6 +562,7 @@ const Home = () => {
           selectedChatId={selectedChatId} 
           onSelectChat={handleSelectChat}
           friends={friends} 
+          onCreateGroup={handleCreateGroup}
         />
       </Box>
 

@@ -12,7 +12,7 @@ import {
 
 interface ChatHeaderProps {
   name: string;
-  avatar: string;
+  avatar?: string;
   status: string;
   online?: boolean;
 }
@@ -47,6 +47,8 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 }));
 
 const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
+  const initials = name.split(' ').map((word) => word.charAt(0)).join('');
+
   return (
     <Box 
       sx={{ 
@@ -69,14 +71,18 @@ const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
               alt={name} 
               src={avatar} 
               sx={{ width: 40, height: 40 }}
-            />
+            >
+              {!avatar && initials}
+            </Avatar>
           </StyledBadge>
         ) : (
           <Avatar 
             alt={name} 
             src={avatar} 
             sx={{ width: 40, height: 40 }}
-          />
+          >
+            {!avatar && initials}
+          </Avatar>
         )}
         <Box sx={{ ml: 2 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>

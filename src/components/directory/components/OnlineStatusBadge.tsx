@@ -31,7 +31,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 
 interface OnlineStatusBadgeProps {
   name: string;
-  avatar: string;
+  avatar?: string;
   online?: boolean;
 }
 
@@ -43,12 +43,18 @@ const OnlineStatusBadge = ({ name, avatar, online }: OnlineStatusBadgeProps) => 
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         variant="dot"
       >
-        <Avatar alt={name} src={avatar} />
+        <Avatar alt={name} src={avatar}>
+          {!avatar && name.charAt(0).toUpperCase()}
+        </Avatar>
       </StyledBadge>
     );
   }
 
-  return <Avatar alt={name} src={avatar} />;
+  return (
+    <Avatar alt={name} src={avatar}>
+      {!avatar && name.charAt(0).toUpperCase()}
+    </Avatar>
+  );
 };
 
 export default OnlineStatusBadge;

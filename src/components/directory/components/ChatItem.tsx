@@ -8,6 +8,7 @@ import {
   Badge 
 } from '@mui/material';
 import OnlineStatusBadge from './OnlineStatusBadge';
+import GroupAvatar from './GroupAvatar';
 import type { Chat } from '../chat-list';
 
 interface ChatItemProps {
@@ -37,11 +38,18 @@ const ChatItem = ({ chat, isSelected, onSelect }: ChatItemProps) => {
         }}
       >
         <ListItemAvatar>
-          <OnlineStatusBadge 
-            name={chat.name} 
-            avatar={chat.avatar} 
-            online={chat.online} 
-          />
+          {chat.isGroup ? (
+            <GroupAvatar 
+              participants={chat.participants || []}
+              size={40}
+            />
+          ) : (
+            <OnlineStatusBadge 
+              name={chat.name} 
+              avatar={chat.avatar} 
+              online={chat.online} 
+            />
+          )}
         </ListItemAvatar>
         <ListItemText 
           primary={chat.name}

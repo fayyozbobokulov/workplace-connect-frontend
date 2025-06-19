@@ -1,14 +1,16 @@
-import { Box, InputBase, Button } from '@mui/material';
+import { Box, InputBase, Button, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
 
 interface ChatSearchBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAddFriend: () => void;
+  onCreateGroup: () => void;
 }
 
-const ChatSearchBar = ({ searchQuery, onSearchChange, onAddFriend }: ChatSearchBarProps) => {
+const ChatSearchBar = ({ searchQuery, onSearchChange, onAddFriend, onCreateGroup }: ChatSearchBarProps) => {
   return (
     <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
       <Box sx={{ 
@@ -36,23 +38,46 @@ const ChatSearchBar = ({ searchQuery, onSearchChange, onAddFriend }: ChatSearchB
           }}
         />
       </Box>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={onAddFriend}
-        sx={{ 
-          minWidth: '40px', 
-          width: '40px', 
-          height: '40px',
-          borderRadius: '8px',
-          p: 0,
-          '& .MuiButton-startIcon': {
-            margin: 0
-          }
-        }}
-      >
-        <AddIcon />
-      </Button>
+      
+      <Tooltip title="Add Friend">
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={onAddFriend}
+          sx={{ 
+            minWidth: '40px', 
+            width: '40px', 
+            height: '40px',
+            borderRadius: '8px',
+            p: 0,
+            '& .MuiButton-startIcon': {
+              margin: 0
+            }
+          }}
+        >
+          <PersonAddIcon />
+        </Button>
+      </Tooltip>
+      
+      <Tooltip title="Create Group">
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={onCreateGroup}
+          sx={{ 
+            minWidth: '40px', 
+            width: '40px', 
+            height: '40px',
+            borderRadius: '8px',
+            p: 0,
+            '& .MuiButton-startIcon': {
+              margin: 0
+            }
+          }}
+        >
+          <GroupAddIcon />
+        </Button>
+      </Tooltip>
     </Box>
   );
 };
