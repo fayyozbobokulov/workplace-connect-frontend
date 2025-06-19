@@ -6,15 +6,25 @@ import {
   styled,
   Badge
 } from '@mui/material';
+import GroupAvatar from '../directory/components/GroupAvatar';
 //import CallIcon from '@mui/icons-material/Call';
 //import VideocamIcon from '@mui/icons-material/Videocam';
 //import MoreVertIcon from '@mui/icons-material/MoreVert';
+
+interface Participant {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  profilePicture?: string;
+}
 
 interface ChatHeaderProps {
   name: string;
   avatar?: string;
   status: string;
   online?: boolean;
+  isGroup?: boolean;
+  participants?: Participant[];
 }
 
 const StyledBadge = styled(Badge)(({ theme }) => ({
@@ -46,7 +56,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
   },
 }));
 
-const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
+const ChatHeader = ({ name, avatar, status, online, isGroup, participants }: ChatHeaderProps) => {
   const initials = name.split(' ').map((word) => word.charAt(0)).join('');
 
   return (
@@ -61,7 +71,9 @@ const ChatHeader = ({ name, avatar, status, online }: ChatHeaderProps) => {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        {online ? (
+        {isGroup ? (
+          <GroupAvatar participants={participants || []} />
+        ) : online ? (
           <StyledBadge
             overlap="circular"
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}

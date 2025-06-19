@@ -47,8 +47,10 @@ const ChatContainer = ({ chat, currentUserId, messages, onSendMessage }: ChatCon
       <ChatHeader 
         name={chat.name} 
         avatar={chat.avatar} 
-        status={chat.online ? 'Online' : 'Offline'} 
+        status={chat.isGroup ? `${(chat.participants?.length || 0) + 1} members` : (chat.online ? 'Online' : 'Offline')} 
         online={chat.online}
+        isGroup={chat.isGroup}
+        participants={chat.participants}
       />
       <MessageWindow 
         messages={messages} 
