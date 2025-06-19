@@ -56,7 +56,7 @@ const Auth = () => {
     setError(null);
     
     try {
-      await signUp(data.firstName, data.lastName, data.email, data.password);
+      await signUp(data.firstName, data.lastName, data.email, data.password, data.confirmPassword);
       navigate(from, { replace: true });
     } catch (err: unknown) {
       const apiError = err as ApiError;

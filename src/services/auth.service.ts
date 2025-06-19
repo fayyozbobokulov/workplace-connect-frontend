@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Define base URL for API calls
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 // Define user interface
 export interface User {
@@ -42,13 +42,14 @@ class AuthService {
   }
 
   // Sign up with user details
-  async signUp(firstName: string, lastName: string, email: string, password: string): Promise<Session> {
+  async signUp(firstName: string, lastName: string, email: string, password: string, confirmPassword: string): Promise<Session> {
     try {
       const response = await axios.post(`${API_URL}/auth/signup`, {
         firstName,
         lastName,
         email,
-        password
+        password,
+        confirmPassword
       });
       // We no longer store session in localStorage here, as it's handled by AuthProvider
       return response.data;
@@ -56,15 +57,16 @@ class AuthService {
       console.error('Sign up error:', error);
       // For testing purposes, return mock data instead of throwing the error
       console.log('Using mock data for testing purposes');
-      return {
-        user: {
-          _id: 'test-user-id-' + Math.random().toString(36).substring(2, 10),
-          firstName,
-          lastName,
-          email
-        },
-        token: 'mock-jwt-token-for-testing-purposes-' + Math.random().toString(36).substring(2, 10)
-      };
+      throw new Error((error as Error).message || 'Sign up failed');
+      // return {
+      //   user: {
+      //     _id: 'test-user-id-' + Math.random().toString(36).substring(2, 10),
+      //     firstName,
+      //     lastName,
+      //     email
+      //   },
+      //   token: 'mock-jwt-token-for-testing-purposes-' + Math.random().toString(36).substring(2, 10)
+      // };
     }
   }
 

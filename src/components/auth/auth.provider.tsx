@@ -11,7 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  signUp: (firstName: string, lastName: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   signOut: () => void;
 }
 
@@ -74,10 +74,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   // Sign up function
-  const signUp = async (firstName: string, lastName: string, email: string, password: string) => {
+  const signUp = async (firstName: string, lastName: string, email: string, password: string, confirmPassword: string) => {
     setIsLoading(true);
     try {
-      const newSession = await authService.signUp(firstName, lastName, email, password);
+      const newSession = await authService.signUp(firstName, lastName, email, password, confirmPassword);
       setSession(newSession);
       setUser(newSession.user);
       
