@@ -18,6 +18,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import HelpIcon from '@mui/icons-material/Help';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../../components/auth/auth.provider';
 import FilePicker from '../common/FilePicker';
 import UploadedPicturePreview from '../common/UploadedPicturePreview';
@@ -40,6 +41,13 @@ const ChatHeader = () => {
   const handleFileSelect = (file: File) => {
     const imageUrl = URL.createObjectURL(file);
     setProfileImage(imageUrl);
+  };
+
+  const handleDeleteImage = () => {
+    if (profileImage) {
+      URL.revokeObjectURL(profileImage);
+      setProfileImage(null);
+    }
   };
 
   return (
@@ -113,28 +121,48 @@ const ChatHeader = () => {
 
         {/* User Profile Section */}
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-          <FilePicker onFileSelect={handleFileSelect}>
-            {profileImage ? (
-              <UploadedPicturePreview imageUrl={profileImage} alt="Profile picture" />
-            ) : (
-              <Box 
-                sx={{ 
-                  width: 80, 
-                  height: 80, 
-                  borderRadius: '50%', 
-                  bgcolor: 'primary.main', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
+          <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilePicker onFileSelect={handleFileSelect}>
+              {profileImage ? (
+                <UploadedPicturePreview imageUrl={profileImage} alt="Profile picture" />
+              ) : (
+                <Box 
+                  sx={{ 
+                    width: 80, 
+                    height: 80, 
+                    borderRadius: '50%', 
+                    bgcolor: 'primary.main', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '2rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+                </Box>
+              )}
+            </FilePicker>
+            {profileImage && (
+              <IconButton
+                onClick={handleDeleteImage}
+                size="small"
+                sx={{
+                  backgroundColor: 'error.main',
                   color: 'white',
-                  fontSize: '2rem',
-                  fontWeight: 'bold'
+                  width: 28,
+                  height: 28,
+                  '&:hover': {
+                    backgroundColor: 'error.dark',
+                  },
+                  ml: 1
                 }}
               >
-                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
-              </Box>
+                <DeleteIcon sx={{ fontSize: 16 }} />
+              </IconButton>
             )}
-          </FilePicker>
+          </Box>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {user ? `${user.firstName} ${user.lastName}` : 'User'}
           </Typography>

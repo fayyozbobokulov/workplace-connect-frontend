@@ -9,7 +9,7 @@ interface UploadedPicturePreviewProps {
 const UploadedPicturePreview = ({ 
   imageUrl, 
   alt = "Profile picture", 
-  size = 80 
+  size = 80
 }: UploadedPicturePreviewProps) => {
   return (
     <Box
