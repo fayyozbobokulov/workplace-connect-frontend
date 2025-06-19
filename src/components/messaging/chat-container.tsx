@@ -40,7 +40,7 @@ const ChatContainer = ({ chat, currentUserId, messages, onSendMessage }: ChatCon
         flex: 1, 
         display: 'flex', 
         flexDirection: 'column',
-        height: '100%',
+        // height: '100%',
         overflow: 'hidden'
       }}
     >

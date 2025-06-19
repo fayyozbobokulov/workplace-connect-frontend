@@ -101,7 +101,7 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
                   </Typography>
                 </Box>
                 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: isOwn ? 'flex-end' : 'flex-start' }}>
                   {group.map((message) => (
                     <Box
                       key={message._id}
@@ -111,6 +111,10 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
                         borderRadius: 2,
                         p: 1.5,
                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                        maxWidth: '100%',
+                        width: 'fit-content',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
                       }}
                     >
                       <Typography variant="body1">{message.text}</Typography>
