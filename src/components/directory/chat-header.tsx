@@ -19,9 +19,12 @@ import HelpIcon from '@mui/icons-material/Help';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../../components/auth/auth.provider';
+import FilePicker from '../common/FilePicker';
+import UploadedPicturePreview from '../common/UploadedPicturePreview';
 
 const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const { signOut, session } = useAuth();
   const user = session?.user;
 
@@ -32,6 +35,11 @@ const ChatHeader = () => {
   const handleSignOut = () => {
     signOut();
     setDrawerOpen(false);
+  };
+
+  const handleFileSelect = (file: File) => {
+    const imageUrl = URL.createObjectURL(file);
+    setProfileImage(imageUrl);
   };
 
   return (
@@ -73,12 +81,14 @@ const ChatHeader = () => {
         anchor="left"
         open={drawerOpen}
         onClose={toggleDrawer}
-        PaperProps={{
-          sx: {
-            width: '100%', // Same width as the chat list
-            maxWidth: '320px',
-            borderRight: '1px solid #eaeaea',
-            p: 0
+        slotProps={{
+          paper: {
+            sx: {
+              width: '100%', // Same width as the chat list
+              maxWidth: '320px',
+              borderRight: '1px solid #eaeaea',
+              p: 0
+            }
           }
         }}
         ModalProps={{
@@ -103,22 +113,28 @@ const ChatHeader = () => {
 
         {/* User Profile Section */}
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
-          <Box 
-            sx={{ 
-              width: 80, 
-              height: 80, 
-              borderRadius: '50%', 
-              bgcolor: 'primary.main', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '2rem',
-              fontWeight: 'bold'
-            }}
-          >
-            {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
-          </Box>
+          <FilePicker onFileSelect={handleFileSelect}>
+            {profileImage ? (
+              <UploadedPicturePreview imageUrl={profileImage} alt="Profile picture" />
+            ) : (
+              <Box 
+                sx={{ 
+                  width: 80, 
+                  height: 80, 
+                  borderRadius: '50%', 
+                  bgcolor: 'primary.main', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '2rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+              </Box>
+            )}
+          </FilePicker>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {user ? `${user.firstName} ${user.lastName}` : 'User'}
           </Typography>

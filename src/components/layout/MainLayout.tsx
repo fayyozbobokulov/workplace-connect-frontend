@@ -56,7 +56,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             }}
           >
             <Avatar 
-              alt={user?.firstName ? `${user.firstName} ${user.lastName}` : 'User'} 
+              alt={user?.firstName ? `${user.firstName} ${user.lastName}` : 'User - test'} 
               src="https://randomuser.me/api/portraits/men/11.jpg"
               sx={{ width: 32, height: 32 }}
             />
