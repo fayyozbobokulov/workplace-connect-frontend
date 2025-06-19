@@ -9,7 +9,8 @@ import {
   ListItemText, 
   Divider, 
   IconButton, 
-  ListItemButton
+  ListItemButton,
+  CircularProgress
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -19,13 +20,18 @@ import HelpIcon from '@mui/icons-material/Help';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
 import { useAuth } from '../../components/auth/auth.provider';
 import FilePicker from '../common/FilePicker';
 import UploadedPicturePreview from '../common/UploadedPicturePreview';
 
+// Define base URL for API calls
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
 const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const { signOut, session } = useAuth();
 
   const user = session;
@@ -39,9 +45,69 @@ const ChatHeader = () => {
     setDrawerOpen(false);
   };
 
-  const handleFileSelect = (file: File) => {
-    const imageUrl = URL.createObjectURL(file);
-    setProfileImage(imageUrl);
+  const handleFileSelect = async (file: File) => {
+    // Validate file type and size
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      // Get auth token from session
+      const token = session?.token;
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      // Upload to backend
+      const response = await axios.post(`${API_URL}/users/me/profile-picture`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to upload profile picture');
+      }
+
+      const result = response.data;
+      
+      // Update local state with the uploaded image URL from server
+      if (result.profilePicture) {
+        setProfileImage(result.profilePicture);
+        // Also update the session/user context if needed
+        // You might want to refresh user data here
+      } else {
+        // Fallback to local preview if server doesn't return URL
+        const imageUrl = URL.createObjectURL(file);
+        setProfileImage(imageUrl);
+      }
+
+      console.log('Profile picture uploaded successfully:', result);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      // alert(`Failed to upload profile picture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Still show local preview on error for better UX
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteImage = () => {
@@ -123,12 +189,16 @@ const ChatHeader = () => {
         {/* User Profile Section */}
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FilePicker onFileSelect={handleFileSelect}>
-              <UploadedPicturePreview 
-                imageUrl={profileImage || undefined} 
-                alt="Profile picture"
-                fallbackText={user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
-              />
+            <FilePicker onFileSelect={handleFileSelect} disabled={isUploading}>
+              {isUploading ? (
+                <CircularProgress size={40} />
+              ) : (
+                <UploadedPicturePreview 
+                  imageUrl={profileImage || undefined} 
+                  alt="Profile picture"
+                  fallbackText={user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+                />
+              )}
             </FilePicker>
             {profileImage && (
               <IconButton

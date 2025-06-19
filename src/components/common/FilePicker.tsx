@@ -7,18 +7,22 @@ interface FilePickerProps {
   accept?: string;
   children?: ReactNode;
   size?: number;
+  disabled?: boolean;
 }
 
 const FilePicker = ({ 
   onFileSelect, 
   accept = "image/*", 
   children, 
-  size = 80 
+  size = 80,
+  disabled = false
 }: FilePickerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!disabled) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,6 +39,7 @@ const FilePicker = ({
         ref={fileInputRef}
         onChange={handleFileChange}
         accept={accept}
+        disabled={disabled}
         style={{ display: 'none' }}
       />
       
@@ -44,11 +49,14 @@ const FilePicker = ({
           width: size,
           height: size,
           borderRadius: '50%',
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
           position: 'relative',
           overflow: 'hidden',
+          opacity: disabled ? 0.6 : 1,
+          filter: disabled ? 'grayscale(50%)' : 'none',
+          transition: 'opacity 0.2s ease-in-out, filter 0.2s ease-in-out',
           '&:hover .file-picker-overlay': {
-            opacity: 1,
+            opacity: disabled ? 0 : 1,
           }
         }}
       >
@@ -67,7 +75,7 @@ const FilePicker = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: 0,
+            opacity: disabled ? 0 : 0,
             transition: 'opacity 0.2s ease-in-out',
             borderRadius: '50%',
           }}
@@ -79,6 +87,7 @@ const FilePicker = ({
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
               }
             }}
+            disabled={disabled}
           >
             <CameraAltIcon />
           </IconButton>
