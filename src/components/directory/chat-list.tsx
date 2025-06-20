@@ -3,13 +3,13 @@ import { Box } from '@mui/material';
 import ChatHeader from './chat-header';
 import AddFriendDialog from './add-friend.dialog';
 import CreateGroupDialog, { type GroupData } from './create-group.dialog';
-import ChatSearchBar from './components/ChatSearchBar';
-import SectionHeader from './components/SectionHeader';
-import ScrollableList from './components/ScrollableList';
-import ChatItem from './components/ChatItem';
-import FriendItem from './components/FriendItem';
-import NotificationSnackbar from './components/NotificationSnackbar';
-import { useFriendActions } from './hooks/useFriendActions';
+import ChatSearchBar from './components/chat-search-bar';
+import SectionHeader from './components/section-header';
+import ScrollableList from './components/scrollable-list';
+import ChatItem from './components/chat-item';
+import FriendItem from './components/friend-item';
+import NotificationSnackbar from './components/notification-snackbar';
+import { useFriendActions } from './hooks/user-friend-actions';
 import { filterChatsByQuery, sortByLatestMessage } from './utils/chatUtils';
 
 export interface Friend {

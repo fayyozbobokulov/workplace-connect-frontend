@@ -7,8 +7,8 @@ import {
   Box, 
   Badge 
 } from '@mui/material';
-import OnlineStatusBadge from './OnlineStatusBadge';
-import GroupAvatar from './GroupAvatar';
+import OnlineStatusBadge from './online-status-bar';
+import GroupAvatar from './group-avatar';
 import type { Chat } from '../chat-list';
 
 interface ChatItemProps {

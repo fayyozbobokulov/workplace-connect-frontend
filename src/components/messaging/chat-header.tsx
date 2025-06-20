@@ -5,7 +5,7 @@ import {
   styled,
   Badge
 } from '@mui/material';
-import GroupAvatar from '../directory/components/GroupAvatar';
+import GroupAvatar from '../directory/components/group-avatar';
 
 interface Participant {
   _id: string;

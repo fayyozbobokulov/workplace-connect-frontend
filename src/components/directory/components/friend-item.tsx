@@ -4,7 +4,7 @@ import {
   ListItemAvatar, 
   ListItemText 
 } from '@mui/material';
-import OnlineStatusBadge from './OnlineStatusBadge';
+import OnlineStatusBadge from './online-status-bar';
 import type { Friend } from '../chat-list';
 
 interface FriendItemProps {

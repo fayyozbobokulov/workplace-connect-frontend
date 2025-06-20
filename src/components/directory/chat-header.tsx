@@ -22,8 +22,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { useAuth } from '../../components/auth/auth.provider';
-import FilePicker from '../common/FilePicker';
-import UploadedPicturePreview from '../common/UploadedPicturePreview';
+import FilePicker from '../common/file-picker';
+import UploadedPicturePreview from '../common/uploaded-picture-preview';
 
 // Define base URL for API calls
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';

@@ -4,7 +4,7 @@ import { AuthProvider, ProtectedRoute, PublicRoute } from './components/auth/aut
 // Import pages
 import Auth from './pages/auth';
 import Home from './pages/home';
-import MainLayout from './components/layout/MainLayout';
+import MainLayout from './components/layout/main-layout';
 
 // Placeholder components for protected routes
 const Messages = () => <div>Messages Page</div>;
