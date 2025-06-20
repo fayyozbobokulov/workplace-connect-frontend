@@ -21,7 +21,7 @@ class AuthService {
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<Session> {
     try {
-      const response = await axios.post(`${API_URL}/auth/signin`, { email, password });
+      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
       // We no longer store session in localStorage here, as it's handled by AuthProvider
       return response.data;
     } catch (error) {

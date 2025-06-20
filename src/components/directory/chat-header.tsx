@@ -32,6 +32,7 @@ const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { signOut, session } = useAuth();
 
   const user = session;
@@ -110,10 +111,35 @@ const ChatHeader = () => {
     }
   };
 
-  const handleDeleteImage = () => {
+  const handleDeleteImage = async () => {
     if (profileImage) {
-      URL.revokeObjectURL(profileImage);
-      setProfileImage(null);
+      setIsDeleting(true);
+      try {
+        // Get auth token from session
+        const token = session?.token;
+        if (!token) {
+          throw new Error('Authentication token not found');
+        }
+
+        // Delete profile picture from backend
+        const response = await axios.delete(`${API_URL}/users/me/profile-picture`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Failed to delete profile picture');
+        }
+
+        // Update local state
+        setProfileImage(null);
+        URL.revokeObjectURL(profileImage);
+      } catch (error) {
+        console.error('Error deleting profile picture:', error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -189,7 +215,7 @@ const ChatHeader = () => {
         {/* User Profile Section */}
         <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FilePicker onFileSelect={handleFileSelect} disabled={isUploading}>
+            <FilePicker onFileSelect={handleFileSelect} disabled={isUploading || isDeleting}>
               {isUploading ? (
                 <CircularProgress size={40} />
               ) : (
@@ -200,22 +226,25 @@ const ChatHeader = () => {
                 />
               )}
             </FilePicker>
-            {profileImage && (
+            {profileImage && !isUploading && (
               <IconButton
                 onClick={handleDeleteImage}
                 size="small"
                 sx={{
-                  backgroundColor: 'error.main',
+                  bgcolor: 'error.main',
                   color: 'white',
-                  width: 28,
-                  height: 28,
                   '&:hover': {
-                    backgroundColor: 'error.dark',
+                    bgcolor: 'error.dark',
                   },
                   ml: 1
                 }}
+                disabled={isDeleting}
               >
-                <DeleteIcon sx={{ fontSize: 16 }} />
+                {isDeleting ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <DeleteIcon sx={{ fontSize: 16 }} />
+                )}
               </IconButton>
             )}
           </Box>
