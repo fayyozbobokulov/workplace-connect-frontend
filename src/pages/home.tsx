@@ -239,10 +239,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'm2',
       text: 'Hey Grace, how\'s it going?',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '10:30 AM',
       isOwn: true
@@ -251,10 +251,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'm3',
       text: 'I know, right? Weekend plans are the best. Any exciting plans on your end?',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '10:30 AM',
       isOwn: true
@@ -275,10 +275,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'm5',
       text: 'Hiking sounds amazing! I might catch up on some reading and also meet up with a few friends on Sunday.',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '10:30 AM',
       isOwn: true
@@ -299,10 +299,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'm7',
       text: 'Can\'t wait for the weekend!',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '10:30 AM',
       isOwn: true
@@ -352,10 +352,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'gm3',
       text: 'Great! I\'ve finished the API documentation.',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '01:25 PM',
       isOwn: true
@@ -390,10 +390,10 @@ const mockConversation: Record<string, Message[]> = {
       _id: 'fm2',
       text: 'Morning Mom! All good here.',
       sender: {
-        _id: 'current-user',
+        _id: '685550fdde379d8a82fd8418',
         firstName: 'Jack',
         lastName: 'Raymonds',
-        profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
+        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
       },
       timestamp: '09:30 AM',
       isOwn: true
@@ -414,7 +414,7 @@ const mockConversation: Record<string, Message[]> = {
 };
 
 const Home = () => {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chats, setChats] = useState<Chat[]>(mockChats);
@@ -422,14 +422,6 @@ const Home = () => {
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Current user mock data
-  const currentUser = {
-    _id: 'current-user',
-    firstName: user?.firstName ? user.firstName : 'Jack',
-    lastName: user?.lastName ? user.lastName : 'Raymonds',
-    profilePicture: 'https://randomuser.me/api/portraits/men/11.jpg'
-  };
 
   // Load messages when selected chat changes
   useEffect(() => {
@@ -464,10 +456,10 @@ const Home = () => {
       _id: `m${Date.now()}`,
       text,
       sender: {
-        _id: currentUser._id,
-        firstName: currentUser.firstName,
-        lastName: currentUser.lastName,
-        profilePicture: currentUser.profilePicture
+        _id: session!._id,
+        firstName: session!.firstName,
+        lastName: session!.lastName,
+        profilePicture: session!.profilePicture
       },
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isOwn: true
@@ -575,7 +567,7 @@ const Home = () => {
       >
         <ChatContainer 
           chat={selectedChat} 
-          currentUserId={currentUser._id}
+          currentUserId={session!._id}
           messages={messages}
           onSendMessage={handleSendMessage}
         />

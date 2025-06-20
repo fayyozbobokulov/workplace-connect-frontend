@@ -8,6 +8,7 @@ export interface User {
   _id: string;
   firstName: string;
   lastName: string;
+  profilePicture: string;
   email: string;
 }
 
@@ -27,14 +28,7 @@ class AuthService {
     } catch (error) {
       console.error('Sign in error:', error);
       // For testing purposes, return mock data instead of throwing the error
-      console.log('Using mock data for testing purposes');
-      return {
-        _id: 'test-user-id-123',
-        firstName: 'Test',
-        lastName: 'User',
-        email: email,
-        token: 'mock-jwt-token-for-testing-purposes'
-      };
+      throw new Error((error as Error).message);
     }
   }
 

@@ -30,10 +30,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { signOut, session } = useAuth();
+  const [profileImage, setProfileImage] = useState<string | null>(session?.profilePicture ?? null);
 
   const user = session;
 
