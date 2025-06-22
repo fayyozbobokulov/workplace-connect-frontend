@@ -1,532 +1,234 @@
 import { useState, useEffect } from 'react';
-import { Box, useTheme, useMediaQuery } from '@mui/material';
+import { Box, useTheme, useMediaQuery, Snackbar, Alert, CircularProgress, Backdrop } from '@mui/material';
 import { useAuth } from '../components/auth/auth.provider';
-import ChatList, { type Chat,type Friend } from '../components/directory/chat-list';
+import { useMessagingContext } from '../contexts/messaging.context';
+import ChatList, { type Chat, type Friend } from '../components/directory/chat-list';
 import { type GroupData } from '../components/directory/create-group.dialog';
 import ChatContainer from '../components/messaging/chat-container';
 import type { Message } from '../components/messaging/message-window';
-
-// Mock data for chats
-const mockChats: Chat[] = [
-  {
-    _id: '1',
-    name: 'Liam Anderson',
-    avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-    lastMessage: 'typing...',
-    timestamp: '04:50 PM',
-    online: false,
-    isPinned: true
-  },
-  {
-    _id: '2',
-    name: 'Lucas Williams',
-    avatar: 'https://randomuser.me/api/portraits/men/68.jpg',
-    lastMessage: 'Hey, how\'s it going?',
-    timestamp: '10:30 AM',
-    unread: 2,
-    isPinned: true
-  },
-  {
-    _id: '3',
-    name: 'Grace Miller',
-    avatar: 'https://randomuser.me/api/portraits/women/54.jpg',
-    lastMessage: 'Can\'t wait for the weekend!',
-    timestamp: '10:25 AM',
-    online: true,
-    isPinned: true
-  },
-  {
-    _id: '4',
-    name: 'Sophia Chen',
-    avatar: 'https://randomuser.me/api/portraits/women/17.jpg',
-    lastMessage: 'Remember that concert last year?',
-    timestamp: '07:23 PM',
-    online: false
-  },
-  {
-    _id: '5',
-    name: 'Benjamin Knight',
-    avatar: 'https://randomuser.me/api/portraits/men/22.jpg',
-    lastMessage: 'Just got back from a hiking trip!',
-    timestamp: '08:45 PM',
-    unread: 1,
-    online: false
-  },
-  {
-    _id: '6',
-    name: 'Olivia Foster',
-    avatar: 'https://randomuser.me/api/portraits/women/85.jpg',
-    lastMessage: 'Excited for the upcoming vacation!',
-    timestamp: 'Yesterday',
-    online: false
-  },
-  {
-    _id: '7',
-    name: 'Jackson Adams',
-    avatar: 'https://randomuser.me/api/portraits/men/33.jpg',
-    lastMessage: 'Looking forward to the weekend!',
-    timestamp: 'Yesterday',
-    online: false
-  },
-  {
-    _id: '8',
-    name: 'Ethan Sullivan',
-    avatar: 'https://randomuser.me/api/portraits/men/91.jpg',
-    lastMessage: 'Finished reading a captivating novel.',
-    timestamp: 'Yesterday',
-    online: false
-  },
-  {
-    _id: '9',
-    name: 'Ethan Sullivan',
-    avatar: 'https://randomuser.me/api/portraits/men/91.jpg',
-    lastMessage: 'Finished reading a captivating novel.',
-    timestamp: 'Yesterday',
-    online: false
-  },
-  // Group chats
-  {
-    _id: 'group1',
-    name: 'Project Team',
-    lastMessage: 'Sarah: Let\'s schedule a meeting for tomorrow',
-    timestamp: '02:30 PM',
-    unread: 3,
-    isGroup: true,
-    participants: [
-      {
-        _id: 'user1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
-      },
-      {
-        _id: 'user2',
-        firstName: 'Mike',
-        lastName: 'Chen',
-        profilePicture: 'https://randomuser.me/api/portraits/men/25.jpg'
-      },
-      {
-        _id: 'user3',
-        firstName: 'Emily',
-        lastName: 'Davis',
-        profilePicture: 'https://randomuser.me/api/portraits/women/30.jpg'
-      }
-    ]
-  },
-  {
-    _id: 'group2',
-    name: 'Family Chat',
-    lastMessage: 'Mom: Don\'t forget dinner on Sunday!',
-    timestamp: '11:45 AM',
-    unread: 1,
-    isGroup: true,
-    participants: [
-      {
-        _id: 'mom',
-        firstName: 'Linda',
-        lastName: 'Smith',
-        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
-      },
-      {
-        _id: 'dad',
-        firstName: 'Robert',
-        lastName: 'Smith',
-        profilePicture: 'https://randomuser.me/api/portraits/men/60.jpg'
-      }
-    ]
-  },
-  {
-    _id: 'group3',
-    name: 'Weekend Squad',
-    lastMessage: 'Alex: Beach volleyball this Saturday?',
-    timestamp: 'Yesterday',
-    isGroup: true,
-    participants: [
-      {
-        _id: 'alex',
-        firstName: 'Alex',
-        lastName: 'Thompson',
-        profilePicture: 'https://randomuser.me/api/portraits/men/35.jpg'
-      },
-      {
-        _id: 'jessica',
-        firstName: 'Jessica',
-        lastName: 'Wilson',
-        profilePicture: 'https://randomuser.me/api/portraits/women/40.jpg'
-      },
-      {
-        _id: 'david',
-        firstName: 'David',
-        lastName: 'Brown',
-        profilePicture: 'https://randomuser.me/api/portraits/men/50.jpg'
-      },
-      {
-        _id: 'lisa',
-        firstName: 'Lisa',
-        lastName: 'Garcia',
-        profilePicture: 'https://randomuser.me/api/portraits/women/45.jpg'
-      }
-    ]
-  }
-];
-// Mock data for friends
-const mockFriends: Friend[] = [
-  {
-    _id: '10',
-    name: 'Emma Johnson',
-    avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: true
-  },
-  {
-    _id: '11',
-    name: 'Noah Brown',
-    avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: false
-  },
-  {
-    _id: '12',
-    name: 'Ava Davis',
-    avatar: 'https://randomuser.me/api/portraits/women/46.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: true
-  },
-  {
-    _id: '13',
-    name: 'William Garcia',
-    avatar: 'https://randomuser.me/api/portraits/men/47.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: false
-  },
-  {
-    _id: '14',
-    name: 'Sophia Martinez',
-    avatar: 'https://randomuser.me/api/portraits/women/48.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: true
-  },
-  {
-    _id: '15',
-    name: 'James Rodriguez',
-    avatar: 'https://randomuser.me/api/portraits/men/49.jpg',
-    lastMessage:'',
-    timestamp: '',
-    online: false
-  }
-];
-// Mock conversation with Grace Miller
-const mockConversation: Record<string, Message[]> = {
-  '3': [
-    {
-      _id: 'm1',
-      text: 'Hi Jack! I\'m doing well, thanks. Can\'t wait for the weekend!',
-      sender: {
-        _id: '3',
-        firstName: 'Grace',
-        lastName: 'Miller',
-        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
-      },
-      timestamp: '10:30 AM',
-      isOwn: false
-    },
-    {
-      _id: 'm2',
-      text: 'Hey Grace, how\'s it going?',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '10:30 AM',
-      isOwn: true
-    },
-    {
-      _id: 'm3',
-      text: 'I know, right? Weekend plans are the best. Any exciting plans on your end?',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '10:30 AM',
-      isOwn: true
-    },
-    {
-      _id: 'm4',
-      text: 'Absolutely! I\'m thinking of going for a hike on Saturday. How about you?',
-      sender: {
-        _id: '3',
-        firstName: 'Grace',
-        lastName: 'Miller',
-        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
-      },
-      timestamp: '10:30 AM',
-      isOwn: false
-    },
-    {
-      _id: 'm5',
-      text: 'Hiking sounds amazing! I might catch up on some reading and also meet up with a few friends on Sunday.',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '10:30 AM',
-      isOwn: true
-    },
-    {
-      _id: 'm6',
-      text: 'That sounds like a great plan! Excited 😊',
-      sender: {
-        _id: '3',
-        firstName: 'Grace',
-        lastName: 'Miller',
-        profilePicture: 'https://randomuser.me/api/portraits/women/54.jpg'
-      },
-      timestamp: '10:30 AM',
-      isOwn: false
-    },
-    {
-      _id: 'm7',
-      text: 'Can\'t wait for the weekend!',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '10:30 AM',
-      isOwn: true
-    }
-  ],
-  '2': [
-    {
-      _id: 'l1',
-      text: 'Hey, how\'s it going?',
-      sender: {
-        _id: '2',
-        firstName: 'Lucas',
-        lastName: 'Williams',
-        profilePicture: 'https://randomuser.me/api/portraits/men/68.jpg'
-      },
-      timestamp: '10:30 AM',
-      isOwn: false
-    }
-  ],
-  // Group conversation examples
-  'group1': [
-    {
-      _id: 'gm1',
-      text: 'Hey everyone! How\'s the project coming along?',
-      sender: {
-        _id: 'user1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
-      },
-      timestamp: '01:15 PM',
-      isOwn: false
-    },
-    {
-      _id: 'gm2',
-      text: 'Making good progress on the frontend!',
-      sender: {
-        _id: 'user2',
-        firstName: 'Mike',
-        lastName: 'Chen',
-        profilePicture: 'https://randomuser.me/api/portraits/men/25.jpg'
-      },
-      timestamp: '01:20 PM',
-      isOwn: false
-    },
-    {
-      _id: 'gm3',
-      text: 'Great! I\'ve finished the API documentation.',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '01:25 PM',
-      isOwn: true
-    },
-    {
-      _id: 'gm4',
-      text: 'Let\'s schedule a meeting for tomorrow to review everything',
-      sender: {
-        _id: 'user1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        profilePicture: 'https://randomuser.me/api/portraits/women/20.jpg'
-      },
-      timestamp: '02:30 PM',
-      isOwn: false
-    }
-  ],
-  'group2': [
-    {
-      _id: 'fm1',
-      text: 'Hi everyone! Hope you\'re all doing well 😊',
-      sender: {
-        _id: 'mom',
-        firstName: 'Linda',
-        lastName: 'Smith',
-        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
-      },
-      timestamp: '09:00 AM',
-      isOwn: false
-    },
-    {
-      _id: 'fm2',
-      text: 'Morning Mom! All good here.',
-      sender: {
-        _id: '685550fdde379d8a82fd8418',
-        firstName: 'Jack',
-        lastName: 'Raymonds',
-        profilePicture: 'http://localhost:5001/files/192fce39-74ae-4670-ac23-befffe689a1e.png'
-      },
-      timestamp: '09:30 AM',
-      isOwn: true
-    },
-    {
-      _id: 'fm3',
-      text: 'Don\'t forget dinner on Sunday! 🍽️',
-      sender: {
-        _id: 'mom',
-        firstName: 'Linda',
-        lastName: 'Smith',
-        profilePicture: 'https://randomuser.me/api/portraits/women/55.jpg'
-      },
-      timestamp: '11:45 AM',
-      isOwn: false
-    }
-  ]
-};
+import usersService, { type User } from '../services/users.service';
+import groupsService, { type Group } from '../services/groups.service';
 
 const Home = () => {
   const { session } = useAuth();
+  const messaging = useMessagingContext();
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [chats, setChats] = useState<Chat[]>(mockChats);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [showError, setShowError] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Load messages when selected chat changes
+  // Convert User to Friend format
+  const convertUserToFriend = (user: User): Friend => ({
+    _id: user._id,
+    name: `${user.firstName} ${user.lastName}`,
+    avatar: user.profilePicture && user.profilePicture.trim() !== '' 
+      ? user.profilePicture 
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName + ' ' + user.lastName)}&background=random`,
+    lastMessage: '',
+    timestamp: '',
+    online: messaging.isUserOnline(user._id)
+  });
+
+  // Convert Group to Chat format
+  const convertGroupToChat = (group: Group): Chat => ({
+    _id: group._id,
+    name: group.name,
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random`,
+    lastMessage: '',
+    timestamp: '',
+    unread: 0,
+    isPinned: false,
+    isGroup: true,
+    participants: [] // This would be populated with member details if needed
+  });
+
+  // Convert messaging chats to Chat format and combine with groups (but NOT friends)
+  const allChats: Chat[] = [
+    // Existing messaging chats (from real-time conversations)
+    ...messaging.chats.map(chat => ({
+      _id: chat._id,
+      name: chat.name,
+      avatar: chat.avatar,
+      lastMessage: chat.lastMessage,
+      timestamp: chat.timestamp,
+      unread: chat.unread,
+      online: chat.isGroup ? undefined : messaging.isUserOnline(chat._id),
+      isPinned: false,
+      isGroup: chat.isGroup,
+      participants: chat.participants
+    })),
+    // Add groups that don't have active conversations yet
+    ...groups
+      .filter(group => !messaging.chats.some(chat => chat._id === group._id))
+      .map(convertGroupToChat)
+    // NOTE: Friends are NOT included here - they will appear in "START NEW CONVERSATION" section
+  ];
+
+  // Get current messages for selected chat
+  const messages: Message[] = selectedChatId ? messaging.getChatMessages(selectedChatId) : [];
+
+  // Load users and groups on component mount
   useEffect(() => {
-    if (selectedChatId && mockConversation[selectedChatId]) {
-      setMessages(mockConversation[selectedChatId]);
+    const loadData = async () => {
+      if (!session?.token) return;
+      
+      setLoading(true);
+      try {
+        // Load users (potential friends)
+        const usersResponse = await usersService.getUsers(session.token, 1, 100);
+        console.log({ usersResponse });
+        
+        const allUsers = usersResponse?.data?.users;
+        
+        // Only proceed if users data is available
+        if (allUsers && Array.isArray(allUsers)) {
+          // Filter out current user
+          const otherUsers = allUsers.filter(user => user._id !== session._id);
+          
+          // Convert users to friends format
+          const friendsList = otherUsers.map(convertUserToFriend);
+          setFriends(friendsList);
+        } else {
+          console.warn('No users data available or invalid format');
+          setFriends([]);
+        }
+
+        // Load groups
+        const groupsResponse = await groupsService.getGroups(session.token);
+        const groupsData = groupsResponse?.data?.groups;
+        
+        // Only proceed if groups data is available
+        if (groupsData && Array.isArray(groupsData)) {
+          setGroups(groupsData);
+        } else {
+          console.warn('No groups data available or invalid format');
+          setGroups([]);
+        }
+      } catch (error) {
+        console.error('Error loading users and groups:', error);
+        setShowError(true);
+      } finally {
+        setLoading(false);
+        setInitialLoading(false);
+      }
+    };
+
+    loadData();
+  }, [session?.token, session?._id]);
+
+  // Update friends online status when online users change
+  useEffect(() => {
+    setFriends(prevFriends => 
+      prevFriends.map(friend => ({
+        ...friend,
+        online: messaging.isUserOnline(friend._id)
+      }))
+    );
+  }, [messaging.onlineUsers]);
+
+  // Show error snackbar when messaging error occurs
+  useEffect(() => {
+    if (messaging.error) {
+      setShowError(true);
+    }
+  }, [messaging.error]);
+
+  // Load messages when chat is selected
+  useEffect(() => {
+    if (selectedChatId) {
+      const selectedChat = allChats.find(chat => chat._id === selectedChatId);
+      const isGroup = selectedChat?.isGroup || false;
+      
+      // Load messages for the selected chat
+      messaging.loadMessages(selectedChatId, isGroup);
+      
+      // Join group room if it's a group chat
+      if (isGroup) {
+        messaging.joinGroup(selectedChatId);
+      }
       
       // Mark messages as read
-      setChats(prevChats => 
-        prevChats.map(chat => 
-          chat._id === selectedChatId ? { ...chat, unread: undefined } : chat
-        )
-      );
-    } else {
-      setMessages([]);
+      const unreadMessages = messages.filter(msg => !msg.isOwn && !msg.readBy?.includes(session!._id));
+      if (unreadMessages.length > 0) {
+        messaging.markMessagesAsRead(unreadMessages.map(msg => msg._id));
+      }
     }
-  }, [selectedChatId]);
+  }, [selectedChatId, session?._id]);
 
-  useEffect(() => {
-    // Fetch friends from API
-    //fetchFriends().then((data) => setFriends(data));
-    setFriends(mockFriends);
-  }, []);
-
+  // Handle chat selection
   const handleSelectChat = (chatId: string) => {
-    console.log('Selected Chat ID:',chatId)
+    console.log('Selected Chat ID:', chatId);
     setSelectedChatId(chatId);
   };
 
-  const selectedChat = chats.find(chat => chat._id === selectedChatId)||friends.find(friend=> friend._id === selectedChatId) || null;
+  // Get selected chat object
+  const selectedChat = allChats.find(chat => chat._id === selectedChatId) || null;
+
+  // Handle sending messages
   const handleSendMessage = (chatId: string, text: string) => {
-    const newMessage: Message = {
-      _id: `m${Date.now()}`,
-      text,
-      sender: {
-        _id: session!._id,
-        firstName: session!.firstName,
-        lastName: session!.lastName,
-        profilePicture: session!.profilePicture
-      },
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isOwn: true
-    };
-  
-    // Update messages state
-    setMessages(prevMessages => [...prevMessages, newMessage]);
-  
-    // Check if the chat already exists in the chat list
-    const chatExists = chats.some(chat => chat._id === chatId);
-  
-    if (chatExists) {
-      // Update existing chat with the new message
-      setChats(prevChats => 
-        prevChats.map(chat => 
-          chat._id === chatId 
-            ? { ...chat, lastMessage: text, timestamp: newMessage.timestamp }
-            : chat
-        )
+    const selectedChat = allChats.find(chat => chat._id === chatId);
+    const isGroup = selectedChat?.isGroup || false;
+    
+    // Send message via real-time socket
+    messaging.sendMessage(text, chatId, isGroup);
+  };
+
+  // Handle group creation
+  const handleCreateGroup = async (groupData: GroupData) => {
+    if (!session?.token) return;
+    
+    try {
+      setLoading(true);
+      
+      // Extract emails from participants
+      const memberEmails = groupData.participants.map(participant => participant.email);
+      
+      // Create group via API
+      const response = await groupsService.createGroup(
+        session.token,
+        groupData.name,
+        undefined, // description - GroupData doesn't include description
+        memberEmails
       );
-    } else {
-      // Add a new chat for the friend
-      const friend = friends.find(friend => friend._id === chatId);
-      if (friend) {
-        const newChat: Chat = {
-          _id: friend._id,
-          name: friend.name,
-          avatar: friend.avatar,
-          lastMessage: text,
-          timestamp: newMessage.timestamp,
-          online: friend.online
-        };
-        setChats(prevChats => [newChat, ...prevChats]); // Add the new chat to the top of the list
-      }
-    }
-  
-    // Add to mock conversation for persistence during the session
-    if (mockConversation[chatId]) {
-      mockConversation[chatId].push(newMessage);
-    } else {
-      mockConversation[chatId] = [newMessage];
+      
+      // Add the new group to local state
+      setGroups(prev => [...prev, response.data.group]);
+      
+      console.log('Group created successfully:', response.data.group);
+      
+      // The group should also appear in messaging.chats automatically
+      // through real-time updates when the first message is sent
+      
+    } catch (error) {
+      console.error('Error creating group:', error);
+      setShowError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleCreateGroup = (groupData: GroupData) => {
-    // Generate unique group ID
-    const groupId = `group-${Date.now()}`;
-    
-    // Create new group chat
-    const newGroupChat: Chat = {
-      _id: groupId,
-      name: groupData.name,
-      lastMessage: 'Group created',
-      timestamp: new Date().toISOString(),
-      isGroup: true,
-      participants: groupData.participants,
-      unread: 0
-    };
+  // Handle typing indicators
+  const handleStartTyping = (chatId: string) => {
+    const selectedChat = allChats.find(chat => chat._id === chatId);
+    const isGroup = selectedChat?.isGroup || false;
+    messaging.startTyping(chatId, isGroup);
+  };
 
-    // Add group to chats list
-    setChats(prevChats => [newGroupChat, ...prevChats]);
-    
-    // Initialize empty conversation for the group
-    mockConversation[groupId] = [];
-    
-    // Auto-select the new group
-    setSelectedChatId(groupId);
+  const handleStopTyping = (chatId: string) => {
+    const selectedChat = allChats.find(chat => chat._id === chatId);
+    const isGroup = selectedChat?.isGroup || false;
+    messaging.stopTyping(chatId, isGroup);
+  };
+
+  // Close error snackbar
+  const handleCloseError = () => {
+    setShowError(false);
+    messaging.clearError();
   };
 
   return (
@@ -541,37 +243,96 @@ const Home = () => {
       right: 0,
       bottom: 0
     }}>
-      {/* Chat List */}
-      <Box 
-        sx={{ 
-          width: isMobile && selectedChatId ? '0' : '300px',
-          display: isMobile && selectedChatId ? 'none' : 'block',
-          transition: 'width 0.3s ease'
-        }}
-      >
-        <ChatList 
-          chats={chats} 
-          selectedChatId={selectedChatId} 
-          onSelectChat={handleSelectChat}
-          friends={friends} 
-          onCreateGroup={handleCreateGroup}
-        />
-      </Box>
+      {initialLoading ? (
+        <Backdrop
+          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open={initialLoading}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      ) : (
+        <>
+          {/* Chat List */}
+          <Box 
+            sx={{ 
+              width: isMobile && selectedChatId ? '0' : '300px',
+              display: isMobile && selectedChatId ? 'none' : 'block',
+              transition: 'width 0.3s ease'
+            }}
+          >
+            <ChatList 
+              chats={allChats} 
+              selectedChatId={selectedChatId} 
+              onSelectChat={handleSelectChat}
+              friends={friends} 
+              onCreateGroup={handleCreateGroup}
+            />
+          </Box>
 
-      {/* Chat Container */}
-      <Box 
-        sx={{ 
-          flex: 1,
-          display: isMobile && !selectedChatId ? 'none' : 'flex'
-        }}
-      >
-        <ChatContainer 
-          chat={selectedChat} 
-          currentUserId={session!._id}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-        />
-      </Box>
+          {/* Chat Container */}
+          <Box 
+            sx={{ 
+              flex: 1,
+              display: isMobile && !selectedChatId ? 'none' : 'flex'
+            }}
+          >
+            <ChatContainer 
+              chat={selectedChat} 
+              currentUserId={session!._id}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              onStartTyping={() => selectedChatId && handleStartTyping(selectedChatId)}
+              onStopTyping={() => selectedChatId && handleStopTyping(selectedChatId)}
+              isTyping={selectedChatId ? messaging.isUserTyping(selectedChatId) : false}
+              isOnline={selectedChat && !selectedChat.isGroup ? messaging.isUserOnline(selectedChat._id) : undefined}
+            />
+          </Box>
+
+          {/* Error Snackbar */}
+          <Snackbar
+            open={showError}
+            autoHideDuration={6000}
+            onClose={handleCloseError}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <Alert 
+              onClose={handleCloseError} 
+              severity="error" 
+              sx={{ width: '100%' }}
+            >
+              {messaging.error}
+            </Alert>
+          </Snackbar>
+
+          {/* Connection Status Indicator */}
+          {!messaging.isConnected && session?.token && (
+            <Box
+              sx={{
+                position: 'fixed',
+                top: 16,
+                right: 16,
+                bgcolor: 'warning.main',
+                color: 'warning.contrastText',
+                px: 2,
+                py: 1,
+                borderRadius: 1,
+                fontSize: '0.875rem',
+                zIndex: 1000
+              }}
+            >
+              Reconnecting...
+            </Box>
+          )}
+
+          {/* Loading Indicator */}
+          <Backdrop
+            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            open={loading}
+          >
+            <CircularProgress color="inherit" />
+          </Backdrop>
+        </>
+      )}
     </Box>
   );
 };

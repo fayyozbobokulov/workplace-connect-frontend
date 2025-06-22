@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider, ProtectedRoute, PublicRoute } from './components/auth/auth.provider';
+import { MessagingProvider } from './contexts/messaging.context';
 
 // Import pages
 import Auth from './pages/auth';
@@ -25,34 +26,42 @@ function App() {
           {/* Protected routes - require authentication */}
           <Route path="/" element={
             <ProtectedRoute>
-              <MainLayout>
-                <Home />
-              </MainLayout>
+              <MessagingProvider>
+                <MainLayout>
+                  <Home />
+                </MainLayout>
+              </MessagingProvider>
             </ProtectedRoute>
           } />
           
           <Route path="/messages" element={
             <ProtectedRoute>
-              <MainLayout>
-                <Messages />
-              </MainLayout>
+              <MessagingProvider>
+                <MainLayout>
+                  <Messages />
+                </MainLayout>
+              </MessagingProvider>
             </ProtectedRoute>
           } />
           
           <Route path="/account" element={
             <ProtectedRoute>
-              <MainLayout>
-                <Account />
-              </MainLayout>
+              <MessagingProvider>
+                <MainLayout>
+                  <Account />
+                </MainLayout>
+              </MessagingProvider>
             </ProtectedRoute>
           } />
           
           {/* Catch all route - redirect to home */}
           <Route path="*" element={
             <ProtectedRoute>
-              <MainLayout>
-                <Home />
-              </MainLayout>
+              <MessagingProvider>
+                <MainLayout>
+                  <Home />
+                </MainLayout>
+              </MessagingProvider>
             </ProtectedRoute>
           } />
         </Routes>

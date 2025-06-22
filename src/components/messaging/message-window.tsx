@@ -12,20 +12,22 @@ export interface Message {
   };
   timestamp: string;
   isOwn: boolean;
+  readBy?: string[];
 }
 
 interface MessageWindowProps {
   messages: Message[];
   currentUserId: string;
+  isTyping?: boolean;
 }
 
-const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
+const MessageWindow = ({ messages, currentUserId, isTyping }: MessageWindowProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change or typing indicator appears
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   // Group messages by sender and time proximity
   const groupedMessages: Message[][] = [];
@@ -53,6 +55,63 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
       groupedMessages.push([...currentGroup]);
     }
   });
+
+  // Typing indicator component
+  const TypingIndicator = () => (
+    <Box 
+      sx={{ 
+        display: 'flex',
+        alignItems: 'flex-end',
+        alignSelf: 'flex-start',
+        maxWidth: '70%',
+        mb: 2
+      }}
+    >
+      <Avatar 
+        sx={{ width: 32, height: 32, mr: 1, bgcolor: 'grey.400' }}
+      />
+      <Box
+        sx={{
+          bgcolor: '#fff',
+          borderRadius: 2,
+          p: 1.5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.5
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          typing
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {[0, 1, 2].map((dot) => (
+            <Box
+              key={dot}
+              sx={{
+                width: 4,
+                height: 4,
+                borderRadius: '50%',
+                bgcolor: 'text.secondary',
+                animation: 'typing 1.4s infinite',
+                animationDelay: `${dot * 0.2}s`,
+                '@keyframes typing': {
+                  '0%, 60%, 100%': {
+                    transform: 'translateY(0)',
+                    opacity: 0.4
+                  },
+                  '30%': {
+                    transform: 'translateY(-10px)',
+                    opacity: 1
+                  }
+                }
+              }}
+            />
+          ))}
+        </Box>
+      </Box>
+    </Box>
+  );
 
   return (
     <Box 
@@ -134,6 +193,10 @@ const MessageWindow = ({ messages, currentUserId }: MessageWindowProps) => {
           </Box>
         );
       })}
+      
+      {/* Typing Indicator */}
+      {isTyping && <TypingIndicator />}
+      
       <div ref={messagesEndRef} />
     </Box>
   );
