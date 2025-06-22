@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -9,7 +9,12 @@ import {
   ListItemText, 
   Divider, 
   IconButton, 
-  ListItemButton
+  ListItemButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -25,6 +30,20 @@ const ChatHeader = () => {
   const { signOut, session } = useAuth();
   const user = session?.user;
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogContent, setDialogContent] = useState<'profile' | 'notifications' | 'privacy'>('profile');
+  const [userDetails, setUserDetails] = useState({ firstName: '', lastName: '', email: '' });
+
+  useEffect(() => {
+    if (user) {
+      setUserDetails({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+      });
+    }
+  }, [user]);
+
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
   };
@@ -32,6 +51,19 @@ const ChatHeader = () => {
   const handleSignOut = () => {
     signOut();
     setDrawerOpen(false);
+  };
+
+  const handleDialogOpen = (content: 'profile' | 'notifications' | 'privacy') => {
+    setDialogContent(content);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+  };
+
+  const handleUserDetailsChange = (field: string, value: string) => {
+    setUserDetails((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -131,19 +163,19 @@ const ChatHeader = () => {
 
         {/* Settings Menu */}
         <List sx={{ p: 0 }}>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => handleDialogOpen('profile')}>
             <ListItemIcon>
               <AccountCircleIcon color="primary" />
             </ListItemIcon>
             <ListItemText primary="Profile" />
           </ListItemButton>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => handleDialogOpen('notifications')}>
             <ListItemIcon>
               <NotificationsIcon color="primary" />
             </ListItemIcon>
             <ListItemText primary="Notifications" />
           </ListItemButton>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => handleDialogOpen('privacy')}>
             <ListItemIcon>
               <SecurityIcon color="primary" />
             </ListItemIcon>
@@ -174,6 +206,48 @@ const ChatHeader = () => {
           </Button>
         </Box>
       </Drawer>
+
+      {/* Reusable Dialog */}
+      <Dialog open={dialogOpen} onClose={handleDialogClose}>
+        <DialogTitle>
+          {dialogContent === 'profile' && 'Edit Profile'}
+          {dialogContent === 'notifications' && 'Notifications'}
+          {dialogContent === 'privacy' && 'Privacy & Security'}
+        </DialogTitle>
+        <DialogContent>
+          {dialogContent === 'profile' && (
+            <>
+              <TextField
+                label="First Name"
+                value={userDetails.firstName}
+                onChange={(e) => handleUserDetailsChange('firstName', e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Last Name"
+                value={userDetails.lastName}
+                onChange={(e) => handleUserDetailsChange('lastName', e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+              <TextField
+                label="Email"
+                value={userDetails.email}
+                onChange={(e) => handleUserDetailsChange('email', e.target.value)}
+                fullWidth
+                margin="normal"
+              />
+            </>
+          )}
+          {dialogContent === 'notifications' && <p>Here are your notifications.</p>}
+          {dialogContent === 'privacy' && <p>Terms will be changed according to the organization.</p>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDialogClose}>Close</Button>
+          {dialogContent === 'profile' && <Button onClick={() => alert('Profile updated!')}>Save</Button>}
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

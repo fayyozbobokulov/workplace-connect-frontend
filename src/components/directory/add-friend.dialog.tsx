@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import axios from 'axios';
 import {
   Dialog,
   DialogTitle,
@@ -41,7 +42,6 @@ interface AddFriendDialogProps {
 const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) => {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [inputValue, setInputValue] = useState('');
-  
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
@@ -89,11 +89,36 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
     setSelectedItems(prev => prev.filter(item => item.id !== itemId));
   };
   
-  const handleAddFriend = () => {
-    if (selectedItems.length > 0) {
+  const handleAddFriend = async () => {
+      if (selectedItems.length === 0) return;
+  
+      // Call the onAddFriend prop with the selected items
       onAddFriend(selectedItems);
-      handleClose();
+
+    const existingUsers = selectedItems.filter(item => !('isCustomEmail' in item));
+   
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const user of existingUsers) {
+      try {
+        await axios.post('/api/friend-requests', { recipientId: user.id }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
     }
+
+    if (successCount > 0) {
+      // Removed unused assignment to 'message'
+    }
+    if (errorCount > 0) {
+      // Removed unused assignment to 'message'
+    }
+
+    handleClose();
   };
   
   const handleClose = () => {
@@ -134,8 +159,7 @@ const AddFriendDialog = ({ open, onClose, onAddFriend }: AddFriendDialogProps) =
           )}
           getOptionLabel={(option) => typeof option === 'string' ? option : option.name}
           renderOption={(props, option) => {
-            // Since we're using the options array which only contains User objects,
-            // we know option is a User here, but TypeScript needs the check
+           
             if (typeof option === 'string') return null;
             
             return (

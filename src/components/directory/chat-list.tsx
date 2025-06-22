@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   List, 
@@ -91,6 +91,11 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends }: ChatListProp
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  // Removed unused friendRequests state
+
+  useEffect(() => {
+    // Removed fetchFriendRequests function as friendRequests state is no longer used
+  }, []);
 
   // Helper function to convert timestamp to comparable value
   const getTimeValue = (timestamp: string): number => {

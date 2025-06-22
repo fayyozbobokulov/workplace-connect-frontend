@@ -18,7 +18,7 @@ interface MessageInputProps {
 
 const MessageInput = ({ onSendMessage }: MessageInputProps) => {
   const [message, setMessage] = useState('');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -59,11 +59,11 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
             <InsertEmoticonIcon />
           </IconButton>
         </Tooltip>
-        {showEmojiPicker && (
+{showEmojiPicker && (
           <Box sx={{ position: 'absolute', bottom: '60px', zIndex: 1000 }}>
-            <EmojiPicker onEmojiClick={handleEmojiClick} />
-          </Box>
-        )}
+          <EmojiPicker onEmojiClick={handleEmojiClick} />
+        </Box>
+        )}        
         <InputBase
           sx={{ ml: 1, flex: 1 }}
           placeholder="Type message..."
@@ -74,7 +74,7 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
           maxRows={4}
         />
         
-        {/*<Tooltip title="Attach file">
+{/*<Tooltip title="Attach file">
           <IconButton sx={{ p: '10px' }}>
             <AttachFileIcon />
           </IconButton>
@@ -87,7 +87,7 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
         </Tooltip>*/}
         
         <Tooltip title="Send">
-          <IconButton 
+<IconButton 
             color="primary" 
             sx={{ p: '10px' }}
             onClick={handleSendMessage}
@@ -102,3 +102,4 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
 };
 
 export default MessageInput;
+         
