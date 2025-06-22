@@ -24,10 +24,11 @@ export interface MemberResult {
 
 // API Response interfaces
 export interface GroupsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    groups: Group[];
+  groups?: Group[];  // Direct groups array (like users API)
+  success?: boolean;
+  message?: string;
+  data?: {
+    groups: Group[];  // Nested groups array (original structure)
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Box, useTheme, useMediaQuery, Snackbar, Alert, CircularProgress, Backdrop } from '@mui/material';
 import { useAuth } from '../components/auth/auth.provider';
 import { useMessagingContext } from '../contexts/messaging.context';
@@ -23,7 +23,7 @@ const Home = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Convert User to Friend format
-  const convertUserToFriend = (user: User): Friend => ({
+  const convertUserToFriend = useCallback((user: User): Friend => ({
     _id: user._id,
     name: `${user.firstName} ${user.lastName}`,
     avatar: user.profilePicture && user.profilePicture.trim() !== '' 
@@ -32,7 +32,7 @@ const Home = () => {
     lastMessage: '',
     timestamp: '',
     online: messaging.isUserOnline(user._id)
-  });
+  }), [messaging]);
 
   // Convert Group to Chat format
   const convertGroupToChat = (group: Group): Chat => ({
@@ -81,9 +81,8 @@ const Home = () => {
       try {
         // Load users (potential friends)
         const usersResponse = await usersService.getUsers(session.token, 1, 100);
-        console.log({ usersResponse });
         
-        const allUsers = usersResponse?.data?.users;
+        const allUsers = usersResponse?.users;
         
         // Only proceed if users data is available
         if (allUsers && Array.isArray(allUsers)) {
@@ -92,21 +91,21 @@ const Home = () => {
           
           // Convert users to friends format
           const friendsList = otherUsers.map(convertUserToFriend);
+          
           setFriends(friendsList);
         } else {
-          console.warn('No users data available or invalid format');
           setFriends([]);
         }
 
         // Load groups
         const groupsResponse = await groupsService.getGroups(session.token);
-        const groupsData = groupsResponse?.data?.groups;
+        console.log('Groups API Response:', groupsResponse);
+        const groupsData = groupsResponse?.groups || groupsResponse?.data?.groups;
         
         // Only proceed if groups data is available
         if (groupsData && Array.isArray(groupsData)) {
           setGroups(groupsData);
         } else {
-          console.warn('No groups data available or invalid format');
           setGroups([]);
         }
       } catch (error) {
@@ -119,7 +118,7 @@ const Home = () => {
     };
 
     loadData();
-  }, [session?.token, session?._id]);
+  }, [session?.token, session?._id, convertUserToFriend]);
 
   // Update friends online status when online users change
   useEffect(() => {
@@ -162,7 +161,6 @@ const Home = () => {
 
   // Handle chat selection
   const handleSelectChat = (chatId: string) => {
-    console.log('Selected Chat ID:', chatId);
     setSelectedChatId(chatId);
   };
 
@@ -198,8 +196,6 @@ const Home = () => {
       
       // Add the new group to local state
       setGroups(prev => [...prev, response.data.group]);
-      
-      console.log('Group created successfully:', response.data.group);
       
       // The group should also appear in messaging.chats automatically
       // through real-time updates when the first message is sent

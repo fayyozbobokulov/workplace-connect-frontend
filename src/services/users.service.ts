@@ -17,18 +17,16 @@ export interface User {
 
 // API Response interfaces
 export interface UsersResponse {
-  success: boolean;
-  message: string;
-  data: {
-    users: User[];
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      totalUsers: number;
-      hasNext: boolean;
-      hasPrev: boolean;
-    };
+  users: User[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalUsers: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
   };
+  search: string | null;
 }
 
 export interface UserResponse {
