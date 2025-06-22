@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Socket } from 'socket.io-client';
 import messagingService, { type Message, type Chat } from '../services/messaging.service';
 import { authService } from '../services/auth.service';
+import { useAuth } from '../components/auth/auth.provider';
 
 export interface TypingUser {
   userId: string;
@@ -26,7 +27,7 @@ export interface MessagingActions {
   disconnect: () => void;
   
   // Message operations
-  sendMessage: (content: string, chatId: string, isGroup?: boolean) => void;
+  sendMessage: (content: string, chatId: string, isGroup?: boolean, receiverInfo?: { name: string; avatar?: string }) => void;
   loadMessages: (chatId: string, isGroup?: boolean, page?: number) => Promise<void>;
   markMessagesAsRead: (messageIds: string[]) => void;
   deleteMessage: (messageId: string) => void;
@@ -59,6 +60,8 @@ export const useMessaging = (): MessagingState & MessagingActions => {
     loading: false,
     error: null,
   });
+
+  const { session } = useAuth();
 
   const typingTimeouts = useRef<Map<string, number>>(new Map());
   const loadedChats = useRef<Set<string>>(new Set());
@@ -126,13 +129,28 @@ export const useMessaging = (): MessagingState & MessagingActions => {
 
     socket.on('message-sent', (response: { success: boolean; message: Message }) => {
       if (response.success) {
-        const chatId = response.message.group || response.message.receiver || '';
+        let chatId: string;
+        
+        if (response.message.group) {
+          chatId = response.message.group || '';
+        } else {
+          // For direct messages, use the other person's ID as chatId
+          // If it's our own message, use receiver ID; if it's from someone else, use sender ID
+          chatId = response.message.isOwn ? (response.message.receiver || '') : response.message.sender._id;
+        }
+        
         if (chatId) {
           setState(prev => ({
             ...prev,
             messages: {
               ...prev.messages,
-              [chatId]: [...(prev.messages[chatId] || []), response.message]
+              [chatId]: (prev.messages[chatId] || []).map((msg, index, arr) => {
+                // Replace the last optimistic message (temp ID) with the server response
+                if (index === arr.length - 1 && msg._id.startsWith('temp-')) {
+                  return response.message;
+                }
+                return msg;
+              })
             }
           }));
           updateChatLastMessage(chatId, response.message);
@@ -212,7 +230,16 @@ export const useMessaging = (): MessagingState & MessagingActions => {
 
   // Handle new incoming message
   const handleNewMessage = useCallback((message: Message, isGroup: boolean) => {
-    const chatId = isGroup ? message.group : message.sender._id;
+    let chatId: string;
+    
+    if (isGroup) {
+      chatId = message.group || '';
+    } else {
+      // For direct messages, use the other person's ID as chatId
+      // If it's our own message, use receiver ID; if it's from someone else, use sender ID
+      chatId = message.isOwn ? (message.receiver || '') : message.sender._id;
+    }
+    
     if (!chatId) return;
 
     setState(prev => ({
@@ -228,34 +255,128 @@ export const useMessaging = (): MessagingState & MessagingActions => {
 
   // Update chat's last message
   const updateChatLastMessage = useCallback((chatId: string, message: Message) => {
-    setState(prev => ({
-      ...prev,
-      chats: prev.chats.map(chat => 
-        chat._id === chatId 
-          ? { 
-              ...chat, 
-              lastMessage: message.text,
-              timestamp: message.timestamp,
-              unread: message.isOwn ? chat.unread : (chat.unread || 0) + 1
-            }
-          : chat
-      )
-    }));
+    setState(prev => {
+      const existingChat = prev.chats.find(chat => chat._id === chatId);
+      
+      if (!existingChat) {
+        // For new chats, we need to determine the chat name and avatar
+        let chatName = '';
+        let chatAvatar = '';
+        
+        if (message.group) {
+          // Group chat
+          chatName = 'Group Chat'; // This should be improved to get actual group name
+          chatAvatar = '';
+        } else {
+          // Direct chat - use the other person's info
+          if (message.isOwn && message.receiver) {
+            // We sent the message, so the chat is with the receiver
+            // We'll need to get receiver info from somewhere else
+            chatName = `User ${message.receiver}`; // Fallback name
+            chatAvatar = '';
+          } else {
+            // We received the message, so the chat is with the sender
+            chatName = `${message.sender.firstName} ${message.sender.lastName}`;
+            chatAvatar = message.sender.profilePicture || '';
+          }
+        }
+        
+        const newChat: Chat = {
+          _id: chatId,
+          name: chatName,
+          avatar: chatAvatar,
+          lastMessage: message.text,
+          timestamp: message.timestamp,
+          unread: message.isOwn ? 0 : 1,
+          isGroup: !!message.group,
+          participants: message.group ? [] : [message.sender]
+        };
+        
+        return { ...prev, chats: [...prev.chats, newChat] };
+      } else {
+        // Update existing chat
+        return {
+          ...prev,
+          chats: prev.chats.map(chat => 
+            chat._id === chatId 
+              ? { 
+                  ...chat, 
+                  lastMessage: message.text,
+                  timestamp: message.timestamp,
+                  unread: message.isOwn ? chat.unread : (chat.unread || 0) + 1
+                }
+              : chat
+          )
+        };
+      }
+    });
   }, []);
 
   // Send message
-  const sendMessage = useCallback((content: string, chatId: string, isGroup = false) => {
+  const sendMessage = useCallback((content: string, chatId: string, isGroup = false, receiverInfo?: { name: string; avatar?: string }) => {
     if (!state.socket?.connected) {
       setState(prev => ({ ...prev, error: 'Not connected to server' }));
       return;
     }
 
+    // Create optimistic message for immediate UI feedback
+    const optimisticMessage: Message = {
+      _id: `temp-${Date.now()}`, // Temporary ID
+      text: content,
+      sender: {
+        _id: session?._id || '',
+        firstName: session?.firstName || '',
+        lastName: session?.lastName || '',
+        profilePicture: session?.profilePicture || ''
+      },
+      receiver: isGroup ? undefined : chatId,
+      group: isGroup ? chatId : undefined,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      readBy: []
+    };
+
+    // Add message to local state immediately
+    setState(prev => ({
+      ...prev,
+      messages: {
+        ...prev.messages,
+        [chatId]: [...(prev.messages[chatId] || []), optimisticMessage]
+      }
+    }));
+
+    // Update chat last message (and create chat if it doesn't exist)
+    if (receiverInfo && !isGroup) {
+      // Check if chat already exists
+      const existingChat = state.chats.find(chat => chat._id === chatId);
+      if (!existingChat) {
+        // Create new chat with proper receiver info
+        const newChat: Chat = {
+          _id: chatId,
+          name: receiverInfo.name,
+          avatar: receiverInfo.avatar || '',
+          lastMessage: content,
+          timestamp: new Date().toISOString(),
+          unread: 0,
+          isGroup: false,
+          participants: []
+        };
+        setState(prev => ({ ...prev, chats: [...prev.chats, newChat] }));
+      } else {
+        // Update existing chat
+        updateChatLastMessage(chatId, optimisticMessage);
+      }
+    } else {
+      updateChatLastMessage(chatId, optimisticMessage);
+    }
+
+    // Send via socket
     if (isGroup) {
       messagingService.sendMessageSocket(content, undefined, chatId);
     } else {
       messagingService.sendMessageSocket(content, chatId, undefined);
     }
-  }, [state.socket]);
+  }, [state.socket, state.chats]);
 
   // Load messages for a chat
   const loadMessages = useCallback(async (chatId: string, isGroup = false, page = 1) => {
@@ -334,6 +455,9 @@ export const useMessaging = (): MessagingState & MessagingActions => {
       }
       
       const response = await messagingService.getConversations(token);
+
+      console.log('RESPONSE', response );
+      
       
       const chats: Chat[] = response.data.conversations.map(conv => ({
         _id: conv.conversationId,

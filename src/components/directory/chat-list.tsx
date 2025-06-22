@@ -72,6 +72,16 @@ const ChatList = ({ chats, selectedChatId, onSelectChat, friends, onCreateGroup 
     (friend) => !chats.some((chat) => chat._id === friend._id)
   );
 
+  // Debug logging
+  console.log('🔍 Chat filtering debug:', {
+    totalFriends: friends?.length || 0,
+    totalChats: chats?.length || 0,
+    friendsWithoutChat: friendsWithoutChat?.length || 0,
+    chatIds: chats?.map(c => c._id) || [],
+    friendIds: friends?.map(f => f._id) || [],
+    filteredFriendIds: friendsWithoutChat?.map(f => f._id) || []
+  });
+
   const handleOpenDialog = () => {
     setDialogOpen(true);
   };

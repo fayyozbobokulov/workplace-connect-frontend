@@ -47,7 +47,21 @@ const Home = () => {
     participants: [] // This would be populated with member details if needed
   });
 
-  // Convert messaging chats to Chat format and combine with groups (but NOT friends)
+  // Get user IDs that have existing conversations (from messaging.chats participants)
+  const userIdsWithConversations = new Set<string>();
+  const userToConversationMap = new Map<string, Chat>();
+  messaging.chats.forEach(chat => {
+    if (!chat.isGroup && chat.participants) {
+      // Find the other participant (not the current user)
+      const otherParticipant = chat.participants.find(p => p._id !== session?._id);
+      if (otherParticipant) {
+        userIdsWithConversations.add(otherParticipant._id);
+        userToConversationMap.set(otherParticipant._id, chat);
+      }
+    }
+  });
+
+  // Convert messaging chats to Chat format and combine with groups and friends with conversations
   const allChats: Chat[] = [
     // Existing messaging chats (from real-time conversations)
     ...messaging.chats.map(chat => ({
@@ -65,9 +79,35 @@ const Home = () => {
     // Add groups that don't have active conversations yet
     ...groups
       .filter(group => !messaging.chats.some(chat => chat._id === group._id))
-      .map(convertGroupToChat)
-    // NOTE: Friends are NOT included here - they will appear in "START NEW CONVERSATION" section
+      .map(convertGroupToChat),
+    // Add friends with existing conversations
+    ...friends
+      .filter(friend => userIdsWithConversations.has(friend._id))
+      .map(friend => {
+        const conversation = userToConversationMap.get(friend._id);
+        return {
+          _id: friend._id, // Use friend ID for selection
+          name: friend.name,
+          avatar: friend.avatar,
+          lastMessage: conversation?.lastMessage || friend.lastMessage,
+          timestamp: conversation?.timestamp || friend.timestamp,
+          unread: conversation?.unread || 0,
+          online: friend.online,
+          isPinned: false,
+          isGroup: false,
+          participants: conversation?.participants
+        } as Chat;
+      })
   ];
+
+  // Debug logging for chat construction
+  console.log('🏠 Home allChats construction:', {
+    messagingChats: messaging.chats.length,
+    groupsWithoutChats: groups.filter(group => !messaging.chats.some(chat => chat._id === group._id)).length,
+    friendsWithConversations: friends.filter(friend => userIdsWithConversations.has(friend._id)).length,
+    totalAllChats: allChats.length,
+    allChatIds: allChats.map(c => ({ id: c._id, name: c.name, isGroup: c.isGroup }))
+  });
 
   // Get current messages for selected chat
   const messages: Message[] = selectedChatId ? messaging.getChatMessages(selectedChatId) : [];
@@ -161,19 +201,78 @@ const Home = () => {
 
   // Handle chat selection
   const handleSelectChat = (chatId: string) => {
+    console.log('Chat selected:', chatId);
+    console.log('Available chats:', allChats.map(c => ({ id: c._id, name: c.name })));
     setSelectedChatId(chatId);
   };
 
-  // Get selected chat object
-  const selectedChat = allChats.find(chat => chat._id === selectedChatId) || null;
+  // Get selected chat object (from allChats or convert friend to chat format)
+  const selectedChat = allChats.find(chat => chat._id === selectedChatId) || 
+    (selectedChatId ? (() => {
+      const friend = friends.find(friend => friend._id === selectedChatId);
+      if (friend) {
+        // Convert friend to chat format
+        return {
+          _id: friend._id,
+          name: friend.name,
+          avatar: friend.avatar,
+          lastMessage: friend.lastMessage,
+          timestamp: friend.timestamp,
+          unread: 0,
+          online: friend.online,
+          isPinned: false,
+          isGroup: false,
+          participants: undefined
+        } as Chat;
+      }
+      return null;
+    })() : null);
+
+  // Debug: Log selected chat
+  console.log('Selected chat resolved to:', selectedChat);
 
   // Handle sending messages
   const handleSendMessage = (chatId: string, text: string) => {
-    const selectedChat = allChats.find(chat => chat._id === chatId);
-    const isGroup = selectedChat?.isGroup || false;
+    console.log('Sending message:', { chatId, text });
+    
+    // Look for chat in allChats first, then check if it's a friend
+    const targetChat = allChats.find(chat => chat._id === chatId);
+    let isGroup = false;
+    let receiverInfo: { name: string; avatar?: string } | undefined;
+    
+    if (targetChat) {
+      isGroup = targetChat.isGroup || false;
+      console.log('Found in allChats:', { name: targetChat.name, isGroup });
+      
+      // For direct messages, prepare receiver info
+      if (!isGroup) {
+        receiverInfo = {
+          name: targetChat.name,
+          avatar: targetChat.avatar
+        };
+      }
+    } else {
+      // Check if it's a friend
+      const friend = friends.find(f => f._id === chatId);
+      if (friend) {
+        isGroup = false; // Friends are never groups
+        console.log('Found in friends:', { name: friend.name, isGroup });
+        
+        // Prepare receiver info for friend
+        receiverInfo = {
+          name: friend.name,
+          avatar: friend.avatar
+        };
+      } else {
+        console.error('Chat/Friend not found for ID:', chatId);
+        return;
+      }
+    }
+    
+    console.log('Sending via messaging.sendMessage:', { text, chatId, isGroup, receiverInfo });
     
     // Send message via real-time socket
-    messaging.sendMessage(text, chatId, isGroup);
+    messaging.sendMessage(text, chatId, isGroup, receiverInfo);
   };
 
   // Handle group creation

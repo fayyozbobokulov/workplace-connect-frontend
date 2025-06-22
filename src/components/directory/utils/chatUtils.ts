@@ -42,6 +42,6 @@ export const sortByLatestMessage = (a: Chat, b: Chat): number => {
 // Filter chats based on search query
 export const filterChatsByQuery = (chats: Chat[], query: string): Chat[] => {
   return chats.filter(chat => 
-    chat.name.toLowerCase().includes(query.toLowerCase())
+    chat.name?.toLowerCase()?.includes(query.toLowerCase())
   );
 };
