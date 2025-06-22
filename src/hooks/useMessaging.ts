@@ -1,22 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
-import messagingService, { type Message, type Chat } from '../services/messaging.service';
-import { authService } from '../services/auth.service';
+import messagingService, { type Message, type Chat, type ConversationResponse } from '../services/messaging.service';
+import authService from '../services/auth.service';
 import { useAuth } from '../components/auth/auth.provider';
 
-export interface TypingUser {
-  userId: string;
-  type: 'direct' | 'group';
-  groupId?: string;
-}
-
 export interface MessagingState {
+  socket: Socket | null;
+  isConnected: boolean;
   messages: Record<string, Message[]>; // chatId -> messages
   chats: Chat[];
   onlineUsers: string[];
-  typingUsers: TypingUser[];
-  socket: Socket | null;
-  isConnected: boolean;
+  typingUsers: Record<string, string[]>; // chatId -> userIds
   loading: boolean;
   error: string | null;
 }
@@ -27,7 +21,7 @@ export interface MessagingActions {
   disconnect: () => void;
   
   // Message operations
-  sendMessage: (content: string, chatId: string, isGroup?: boolean, receiverInfo?: { name: string; avatar?: string }) => void;
+  sendMessage: (content: string, chatId: string, isGroup?: boolean) => void;
   loadMessages: (chatId: string, isGroup?: boolean, page?: number) => Promise<void>;
   markMessagesAsRead: (messageIds: string[]) => void;
   deleteMessage: (messageId: string) => void;
@@ -49,279 +43,247 @@ export interface MessagingActions {
   isUserTyping: (userId: string, chatId?: string) => boolean;
 }
 
+const initialState: MessagingState = {
+  socket: null,
+  isConnected: false,
+  messages: {},
+  chats: [],
+  onlineUsers: [],
+  typingUsers: {},
+  loading: false,
+  error: null,
+};
+
 export const useMessaging = (): MessagingState & MessagingActions => {
-  const [state, setState] = useState<MessagingState>({
-    messages: {},
-    chats: [],
-    onlineUsers: [],
-    typingUsers: [],
-    socket: null,
-    isConnected: false,
-    loading: false,
-    error: null,
-  });
-
+  const [state, setState] = useState<MessagingState>(initialState);
   const { session } = useAuth();
-
-  const typingTimeouts = useRef<Map<string, number>>(new Map());
-  const loadedChats = useRef<Set<string>>(new Set());
 
   // Connect to socket
   const connect = useCallback(() => {
-    const token = authService.getToken();
-    if (!token) {
-      setState(prev => ({ ...prev, error: 'No authentication token found' }));
-      return;
-    }
+    if (!session?.token || state.socket?.connected) return;
 
     try {
-      const socket = messagingService.initializeSocket(token);
-      setState(prev => ({ ...prev, socket, isConnected: socket.connected }));
-
+      const socket = messagingService.initializeSocket(session.token);
+      
       // Set up event listeners
-      setupSocketListeners(socket);
+      socket.on('connect', () => {
+        setState(prev => ({ ...prev, isConnected: true, error: null }));
+      });
+
+      socket.on('disconnect', () => {
+        setState(prev => ({ ...prev, isConnected: false }));
+      });
+
+      socket.on('direct-message', (message: Message) => {
+        handleNewMessage(message, false);
+      });
+
+      socket.on('group-message', (message: Message) => {
+        handleNewMessage(message, true);
+      });
+
+      socket.on('message-sent', (response: { success: boolean; message: Message }) => {
+        if (response.success) {
+          handleMessageSent(response.message);
+        }
+      });
+
+      socket.on('user-status', (data: { userId: string; status: 'online' | 'offline' }) => {
+        setState(prev => ({
+          ...prev,
+          onlineUsers: data.status === 'online' 
+            ? [...prev.onlineUsers.filter(id => id !== data.userId), data.userId]
+            : prev.onlineUsers.filter(id => id !== data.userId)
+        }));
+      });
+
+      socket.on('user-typing', (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => {
+        const chatId = data.type === 'group' ? data.groupId! : data.userId;
+        setState(prev => ({
+          ...prev,
+          typingUsers: {
+            ...prev.typingUsers,
+            [chatId]: [...(prev.typingUsers[chatId] || []).filter(id => id !== data.userId), data.userId]
+          }
+        }));
+      });
+
+      socket.on('user-stopped-typing', (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => {
+        const chatId = data.type === 'group' ? data.groupId! : data.userId;
+        setState(prev => ({
+          ...prev,
+          typingUsers: {
+            ...prev.typingUsers,
+            [chatId]: (prev.typingUsers[chatId] || []).filter(id => id !== data.userId)
+          }
+        }));
+      });
+
+      setState(prev => ({ ...prev, socket }));
     } catch (error) {
       setState(prev => ({ 
         ...prev, 
-        error: error instanceof Error ? error.message : 'Failed to connect to socket' 
+        error: error instanceof Error ? error.message : 'Failed to connect'
       }));
     }
-  }, []);
+  }, [session?.token, state.socket?.connected]);
 
   // Disconnect from socket
   const disconnect = useCallback(() => {
-    messagingService.disconnectSocket();
-    setState(prev => ({ 
-      ...prev, 
-      socket: null, 
-      isConnected: false,
-      typingUsers: []
-    }));
-    
-    // Clear typing timeouts
-    typingTimeouts.current.forEach(timeout => clearTimeout(timeout));
-    typingTimeouts.current.clear();
-  }, []);
-
-  // Set up socket event listeners
-  const setupSocketListeners = useCallback((socket: Socket) => {
-    // Connection events
-    socket.on('connect', () => {
-      setState(prev => ({ ...prev, isConnected: true, error: null }));
-    });
-
-    socket.on('disconnect', () => {
-      setState(prev => ({ ...prev, isConnected: false }));
-    });
-
-    socket.on('error', (error: { message: string }) => {
-      setState(prev => ({ ...prev, error: error.message }));
-    });
-
-    // Message events
-    socket.on('direct-message', (message: Message) => {
-      handleNewMessage(message, false);
-    });
-
-    socket.on('group-message', (message: Message) => {
-      handleNewMessage(message, true);
-    });
-
-    socket.on('message-sent', (response: { success: boolean; message: Message }) => {
-      if (response.success) {
-        let chatId: string;
-        
-        if (response.message.group) {
-          chatId = response.message.group || '';
-        } else {
-          // For direct messages, use the other person's ID as chatId
-          // If it's our own message, use receiver ID; if it's from someone else, use sender ID
-          chatId = response.message.isOwn ? (response.message.receiver || '') : response.message.sender._id;
-        }
-        
-        if (chatId) {
-          setState(prev => ({
-            ...prev,
-            messages: {
-              ...prev.messages,
-              [chatId]: (prev.messages[chatId] || []).map((msg, index, arr) => {
-                // Replace the last optimistic message (temp ID) with the server response
-                if (index === arr.length - 1 && msg._id.startsWith('temp-')) {
-                  return response.message;
-                }
-                return msg;
-              })
-            }
-          }));
-          updateChatLastMessage(chatId, response.message);
-        }
-      }
-    });
-
-    // Typing events
-    socket.on('user-typing', (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => {
-      setState(prev => ({
-        ...prev,
-        typingUsers: [
-          ...prev.typingUsers.filter(user => user.userId !== data.userId),
-          data
-        ]
-      }));
-    });
-
-    socket.on('user-stopped-typing', (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => {
-      setState(prev => ({
-        ...prev,
-        typingUsers: prev.typingUsers.filter(user => user.userId !== data.userId)
-      }));
-    });
-
-    // User status events
-    socket.on('user-status', (data: { userId: string; status: 'online' | 'offline' }) => {
-      setState(prev => ({
-        ...prev,
-        onlineUsers: data.status === 'online' 
-          ? [...prev.onlineUsers.filter(id => id !== data.userId), data.userId]
-          : prev.onlineUsers.filter(id => id !== data.userId),
-        chats: prev.chats.map(chat => 
-          chat._id === data.userId 
-            ? { ...chat, online: data.status === 'online' }
-            : chat
-        )
-      }));
-    });
-
-    // Message operations
-    socket.on('message-deleted', (data: { messageId: string; groupId?: string }) => {
-      setState(prev => {
-        const newMessages = { ...prev.messages };
-        Object.keys(newMessages).forEach(chatId => {
-          newMessages[chatId] = newMessages[chatId].filter(msg => msg._id !== data.messageId);
-        });
-        return { ...prev, messages: newMessages };
-      });
-    });
-
-    socket.on('messages-marked-read', (data: { messageIds: string[]; readBy: string }) => {
-      setState(prev => {
-        const newMessages = { ...prev.messages };
-        Object.keys(newMessages).forEach(chatId => {
-          newMessages[chatId] = newMessages[chatId].map(msg => 
-            data.messageIds.includes(msg._id) 
-              ? { ...msg, readBy: [...(msg.readBy || []), data.readBy] }
-              : msg
-          );
-        });
-        return { ...prev, messages: newMessages };
-      });
-    });
-
-    // Group events
-    socket.on('user-joined-group', (data: { userId: string; groupId: string }) => {
-      // Handle user joining group
-      console.log('User joined group:', data);
-    });
-
-    socket.on('user-left-group', (data: { userId: string; groupId: string }) => {
-      // Handle user leaving group
-      console.log('User left group:', data);
-    });
-  }, []);
+    if (state.socket) {
+      messagingService.disconnectSocket();
+      setState(prev => ({ ...prev, socket: null, isConnected: false }));
+    }
+  }, [state.socket]);
 
   // Handle new incoming message
   const handleNewMessage = useCallback((message: Message, isGroup: boolean) => {
     let chatId: string;
     
     if (isGroup) {
-      chatId = message.group || '';
+      // For group messages, we need the group ID from the message context
+      // This is a limitation of the current message structure - we need group ID
+      chatId = 'group-id-needed'; // TODO: Fix when group ID is available in message
     } else {
-      // For direct messages, use the other person's ID as chatId
-      // If it's our own message, use receiver ID; if it's from someone else, use sender ID
-      chatId = message.isOwn ? (message.receiver || '') : message.sender._id;
+      // For direct messages, use the other person's ID as chat ID
+      // If it's our own message, we need to determine who we're talking to
+      // If it's a received message, use sender's ID
+      chatId = message.sender._id;
     }
     
-    if (!chatId) return;
-
-    setState(prev => ({
-      ...prev,
-      messages: {
-        ...prev.messages,
-        [chatId]: [...(prev.messages[chatId] || []), message]
+    // Check if this message already exists to prevent duplicates
+    let shouldAddMessage = false;
+    let shouldUpdateChat = false;
+    
+    setState(prev => {
+      const existingMessages = prev.messages[chatId] || [];
+      const messageExists = existingMessages.some(msg => 
+        msg._id === message._id || 
+        (msg._id.startsWith('temp-') && msg.text === message.text && msg.sender._id === message.sender._id)
+      );
+      
+      if (messageExists) {
+        return prev; // Don't add duplicate message
       }
-    }));
+      
+      shouldAddMessage = true;
+      const chatExists = prev.chats.some(chat => chat._id === chatId);
+      shouldUpdateChat = !message.isOwn || !chatExists;
+      
+      return {
+        ...prev,
+        messages: {
+          ...prev.messages,
+          [chatId]: [...existingMessages, message]
+        }
+      };
+    });
 
-    updateChatLastMessage(chatId, message);
+    // Update chat last message if needed
+    if (shouldAddMessage && shouldUpdateChat) {
+      updateChatLastMessage(chatId, message, isGroup);
+    }
+  }, []);
+
+  // Handle message sent confirmation
+  const handleMessageSent = useCallback((message: Message) => {
+    // For sent messages, we need to find the correct chat ID
+    // This should match the chatId used when sending the message
+    // The message should contain enough info to determine the correct chat
+    
+    // For now, we'll update all chats that have a temporary message
+    setState(prev => {
+      const newMessages = { ...prev.messages };
+      
+      Object.keys(newMessages).forEach(chatId => {
+        const chatMessages = newMessages[chatId];
+        const hasTemp = chatMessages.some(msg => msg._id.startsWith('temp-'));
+        
+        if (hasTemp) {
+          newMessages[chatId] = chatMessages.map(msg => 
+            msg._id.startsWith('temp-') && msg.text === message.text ? message : msg
+          );
+        }
+      });
+      
+      return {
+        ...prev,
+        messages: newMessages
+      };
+    });
   }, []);
 
   // Update chat's last message
-  const updateChatLastMessage = useCallback((chatId: string, message: Message) => {
+  const updateChatLastMessage = useCallback((chatId: string, message: Message, isGroup = false) => {
     setState(prev => {
-      const existingChat = prev.chats.find(chat => chat._id === chatId);
+      // Check if chat already exists by _id
+      const existingChatIndex = prev.chats.findIndex(chat => chat._id === chatId);
       
-      if (!existingChat) {
-        // For new chats, we need to determine the chat name and avatar
-        let chatName = '';
-        let chatAvatar = '';
-        
-        if (message.group) {
-          // Group chat
-          chatName = 'Group Chat'; // This should be improved to get actual group name
-          chatAvatar = '';
-        } else {
-          // Direct chat - use the other person's info
-          if (message.isOwn && message.receiver) {
-            // We sent the message, so the chat is with the receiver
-            // We'll need to get receiver info from somewhere else
-            chatName = `User ${message.receiver}`; // Fallback name
-            chatAvatar = '';
-          } else {
-            // We received the message, so the chat is with the sender
-            chatName = `${message.sender.firstName} ${message.sender.lastName}`;
-            chatAvatar = message.sender.profilePicture || '';
-          }
-        }
-        
+      if (existingChatIndex === -1) {
+        // Create new chat entry only if it doesn't exist
         const newChat: Chat = {
           _id: chatId,
-          name: chatName,
-          avatar: chatAvatar,
+          name: isGroup ? 'Group Chat' : `${message.sender.firstName} ${message.sender.lastName}`,
+          avatar: message.sender.profilePicture || '',
           lastMessage: message.text,
           timestamp: message.timestamp,
           unread: message.isOwn ? 0 : 1,
-          isGroup: !!message.group,
-          participants: message.group ? [] : [message.sender]
+          isGroup,
+          participants: isGroup ? [] : [{
+            _id: message.sender._id,
+            firstName: message.sender.firstName,
+            lastName: message.sender.lastName,
+            profilePicture: message.sender.profilePicture
+          }]
         };
         
-        return { ...prev, chats: [...prev.chats, newChat] };
-      } else {
-        // Update existing chat
         return {
           ...prev,
-          chats: prev.chats.map(chat => 
-            chat._id === chatId 
-              ? { 
-                  ...chat, 
-                  lastMessage: message.text,
-                  timestamp: message.timestamp,
-                  unread: message.isOwn ? chat.unread : (chat.unread || 0) + 1
-                }
-              : chat
-          )
+          chats: [newChat, ...prev.chats]
         };
+      } else {
+        // Update existing chat
+        const updatedChats = [...prev.chats];
+        updatedChats[existingChatIndex] = {
+          ...updatedChats[existingChatIndex],
+          lastMessage: message.text,
+          timestamp: message.timestamp,
+          unread: message.isOwn ? updatedChats[existingChatIndex].unread : (updatedChats[existingChatIndex].unread || 0) + 1
+        };
+        
+        return { ...prev, chats: updatedChats };
       }
     });
   }, []);
 
   // Send message
-  const sendMessage = useCallback((content: string, chatId: string, isGroup = false, receiverInfo?: { name: string; avatar?: string }) => {
+  const sendMessage = useCallback((content: string, chatId: string, isGroup = false) => {
     if (!state.socket?.connected) {
       setState(prev => ({ ...prev, error: 'Not connected to server' }));
       return;
     }
 
+    // Prevent sending empty messages
+    if (!content.trim()) {
+      return;
+    }
+
+    // Check for recent duplicate messages to prevent rapid sending
+    const recentMessages = state.messages[chatId] || [];
+    const lastMessage = recentMessages[recentMessages.length - 1];
+    const now = Date.now();
+    
+    if (lastMessage && 
+        lastMessage.text === content.trim() && 
+        lastMessage.isOwn && 
+        (now - new Date(lastMessage.timestamp).getTime()) < 1000) {
+      console.log(' Preventing duplicate message send');
+      return; // Prevent sending duplicate message within 1 second
+    }
+
     // Create optimistic message for immediate UI feedback
     const optimisticMessage: Message = {
-      _id: `temp-${Date.now()}`, // Temporary ID
+      _id: `temp-${Date.now()}`,
       text: content,
       sender: {
         _id: session?._id || '',
@@ -329,8 +291,6 @@ export const useMessaging = (): MessagingState & MessagingActions => {
         lastName: session?.lastName || '',
         profilePicture: session?.profilePicture || ''
       },
-      receiver: isGroup ? undefined : chatId,
-      group: isGroup ? chatId : undefined,
       timestamp: new Date().toISOString(),
       isOwn: true,
       readBy: []
@@ -345,43 +305,48 @@ export const useMessaging = (): MessagingState & MessagingActions => {
       }
     }));
 
-    // Update chat last message (and create chat if it doesn't exist)
-    if (receiverInfo && !isGroup) {
-      // Check if chat already exists
-      const existingChat = state.chats.find(chat => chat._id === chatId);
-      if (!existingChat) {
-        // Create new chat with proper receiver info
-        const newChat: Chat = {
-          _id: chatId,
-          name: receiverInfo.name,
-          avatar: receiverInfo.avatar || '',
-          lastMessage: content,
-          timestamp: new Date().toISOString(),
-          unread: 0,
-          isGroup: false,
-          participants: []
-        };
-        setState(prev => ({ ...prev, chats: [...prev.chats, newChat] }));
-      } else {
-        // Update existing chat
-        updateChatLastMessage(chatId, optimisticMessage);
-      }
-    } else {
-      updateChatLastMessage(chatId, optimisticMessage);
-    }
+    // Update chat last message
+    updateChatLastMessage(chatId, optimisticMessage, isGroup);
 
     // Send via socket
+    console.log(' Sending message:', { content, chatId, isGroup });
     if (isGroup) {
       messagingService.sendMessageSocket(content, undefined, chatId);
     } else {
       messagingService.sendMessageSocket(content, chatId, undefined);
     }
-  }, [state.socket, state.chats]);
+  }, [state.socket, state.messages, session, updateChatLastMessage]);
 
   // Load messages for a chat
   const loadMessages = useCallback(async (chatId: string, isGroup = false, page = 1) => {
-    if (loadedChats.current.has(`${chatId}-${page}`)) return;
+    try {
+      const token = authService.getToken();
+      if (!token) return;
 
+      let response;
+      if (isGroup) {
+        response = await messagingService.getGroupMessages(chatId, token, page);
+      } else {
+        response = await messagingService.getDirectMessages(chatId, token, page);
+      }
+
+      setState(prev => ({
+        ...prev,
+        messages: {
+          ...prev.messages,
+          [chatId]: page === 1 ? response.data.messages : [...response.data.messages, ...(prev.messages[chatId] || [])]
+        }
+      }));
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Failed to load messages'
+      }));
+    }
+  }, []);
+
+  // Load conversations
+  const loadConversations = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true }));
     
     try {
@@ -390,27 +355,42 @@ export const useMessaging = (): MessagingState & MessagingActions => {
         throw new Error('No authentication token available');
       }
 
-      const response = isGroup 
-        ? await messagingService.getGroupMessages(chatId, token, page)
-        : await messagingService.getDirectMessages(chatId, token, page);
+      const response: ConversationResponse = await messagingService.getConversations(token);
+      
+      // Convert conversations to Chat objects
+      const chats: Chat[] = response.data.conversations.map(conv => {
+        if (conv.type === 'direct' && conv.participant) {
+          return {
+            _id: conv.participant._id, // Use participant ID as chat ID
+            name: `${conv.participant.firstName} ${conv.participant.lastName}`,
+            avatar: conv.participant.profilePicture || '',
+            lastMessage: conv.lastMessage.text,
+            timestamp: conv.lastMessage.timestamp,
+            unread: conv.unreadCount,
+            isGroup: false,
+            participants: [conv.participant]
+          };
+        } else if (conv.type === 'group' && conv.group) {
+          return {
+            _id: conv.group._id,
+            name: conv.group.name,
+            avatar: '', // Groups might not have avatars in current structure
+            lastMessage: conv.lastMessage.text,
+            timestamp: conv.lastMessage.timestamp,
+            unread: conv.unreadCount,
+            isGroup: true,
+            participants: []
+          };
+        }
+        return null;
+      }).filter(Boolean) as Chat[];
 
-      setState(prev => ({
-        ...prev,
-        messages: {
-          ...prev.messages,
-          [chatId]: page === 1 
-            ? response.data.messages 
-            : [...response.data.messages, ...(prev.messages[chatId] || [])]
-        },
-        loading: false
-      }));
-
-      loadedChats.current.add(`${chatId}-${page}`);
+      setState(prev => ({ ...prev, chats, loading: false }));
     } catch (error) {
       setState(prev => ({ 
         ...prev, 
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load messages'
+        error: error instanceof Error ? error.message : 'Failed to load conversations'
       }));
     }
   }, []);
@@ -444,42 +424,6 @@ export const useMessaging = (): MessagingState & MessagingActions => {
     }
   }, []);
 
-  // Load conversations
-  const loadConversations = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true }));
-    
-    try {
-      const token = authService.getToken();
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-      
-      const response = await messagingService.getConversations(token);
-
-      console.log('RESPONSE', response );
-      
-      
-      const chats: Chat[] = response.data.conversations.map(conv => ({
-        _id: conv.conversationId,
-        name: conv.conversationName,
-        avatar: conv.conversationAvatar,
-        lastMessage: conv.text,
-        timestamp: conv.timestamp,
-        unread: conv.unreadCount,
-        isGroup: conv.conversationType === 'group',
-        participants: conv.participants
-      }));
-
-      setState(prev => ({ ...prev, chats, loading: false }));
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load conversations'
-      }));
-    }
-  }, []);
-
   // Join group
   const joinGroup = useCallback((groupId: string) => {
     if (state.socket?.connected) {
@@ -496,99 +440,50 @@ export const useMessaging = (): MessagingState & MessagingActions => {
 
   // Start typing
   const startTyping = useCallback((chatId: string, isGroup = false) => {
-    if (!state.socket?.connected) return;
-
-    if (isGroup) {
-      messagingService.startTyping(undefined, chatId);
-    } else {
-      messagingService.startTyping(chatId, undefined);
+    if (state.socket?.connected) {
+      if (isGroup) {
+        messagingService.startTyping(undefined, chatId);
+      } else {
+        messagingService.startTyping(chatId, undefined);
+      }
     }
   }, [state.socket]);
 
   // Stop typing
   const stopTyping = useCallback((chatId: string, isGroup = false) => {
-    if (!state.socket?.connected) return;
-
-    if (isGroup) {
-      messagingService.stopTyping(undefined, chatId);
-    } else {
-      messagingService.stopTyping(chatId, undefined);
+    if (state.socket?.connected) {
+      if (isGroup) {
+        messagingService.stopTyping(undefined, chatId);
+      } else {
+        messagingService.stopTyping(chatId, undefined);
+      }
     }
   }, [state.socket]);
 
-  // Auto-stop typing after timeout
-  const autoStopTyping = useCallback((chatId: string, isGroup = false) => {
-    const key = `${chatId}-${isGroup}`;
-    
-    // Clear existing timeout
-    if (typingTimeouts.current.has(key)) {
-      clearTimeout(typingTimeouts.current.get(key)!);
-    }
-
-    // Set new timeout
-    const timeout = setTimeout(() => {
-      stopTyping(chatId, isGroup);
-      typingTimeouts.current.delete(key);
-    }, 3000);
-
-    typingTimeouts.current.set(key, timeout);
-  }, [stopTyping]);
-
-  // Clear error
+  // Utility functions
   const clearError = useCallback(() => {
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
-  // Get messages for a chat
   const getChatMessages = useCallback((chatId: string): Message[] => {
     return state.messages[chatId] || [];
   }, [state.messages]);
 
-  // Get unread count for a chat
   const getUnreadCount = useCallback((chatId: string): number => {
     const chat = state.chats.find(c => c._id === chatId);
     return chat?.unread || 0;
   }, [state.chats]);
 
-  // Check if user is online
   const isUserOnline = useCallback((userId: string): boolean => {
     return state.onlineUsers.includes(userId);
   }, [state.onlineUsers]);
 
-  // Check if user is typing
   const isUserTyping = useCallback((userId: string, chatId?: string): boolean => {
-    return state.typingUsers.some(user => 
-      user.userId === userId && 
-      (!chatId || user.groupId === chatId || user.type === 'direct')
-    );
-  }, [state.typingUsers]);
-
-  // Load online users on connect
-  useEffect(() => {
-    if (state.isConnected) {
-      const token = authService.getToken();
-      if (token) {
-        messagingService.getOnlineUsers(token)
-          .then(response => {
-            setState(prev => ({ 
-              ...prev, 
-              onlineUsers: response.data.onlineUsers 
-            }));
-          })
-          .catch(error => {
-            console.error('Failed to load online users:', error);
-          });
-      }
+    if (chatId) {
+      return (state.typingUsers[chatId] || []).includes(userId);
     }
-  }, [state.isConnected]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      typingTimeouts.current.forEach(timeout => clearTimeout(timeout));
-      typingTimeouts.current.clear();
-    };
-  }, []);
+    return Object.values(state.typingUsers).some(users => users.includes(userId));
+  }, [state.typingUsers]);
 
   return {
     ...state,
@@ -601,10 +496,7 @@ export const useMessaging = (): MessagingState & MessagingActions => {
     loadConversations,
     joinGroup,
     leaveGroup,
-    startTyping: (chatId: string, isGroup = false) => {
-      startTyping(chatId, isGroup);
-      autoStopTyping(chatId, isGroup);
-    },
+    startTyping,
     stopTyping,
     clearError,
     getChatMessages,

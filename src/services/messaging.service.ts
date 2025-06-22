@@ -15,8 +15,6 @@ export interface Message {
     lastName: string;
     profilePicture?: string;
   };
-  receiver?: string;
-  group?: string;
   timestamp: string;
   isOwn: boolean;
   readBy?: string[];
@@ -47,29 +45,33 @@ export interface ConversationResponse {
   message: string;
   data: {
     conversations: Array<{
-      _id: string;
-      text: string;
-      sender: {
+      type: 'direct' | 'group';
+      participant?: {
         _id: string;
         firstName: string;
         lastName: string;
         profilePicture?: string;
       };
-      timestamp: string;
-      isOwn: boolean;
-      conversationType: 'direct' | 'group';
-      conversationId: string;
-      conversationName: string;
-      conversationAvatar?: string;
-      unreadCount: number;
-      participants?: Array<{
+      group?: {
         _id: string;
-        firstName: string;
-        lastName: string;
-        profilePicture?: string;
-      }>;
+        name: string;
+        description?: string;
+      };
+      lastMessage: {
+        _id: string;
+        text: string;
+        sender: {
+          _id: string;
+          firstName: string;
+          lastName: string;
+          profilePicture?: string;
+        };
+        timestamp: string;
+        isOwn: boolean;
+      };
+      unreadCount: number;
     }>;
-    totalCount: number;
+    count: number;
   };
 }
 

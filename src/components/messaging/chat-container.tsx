@@ -44,7 +44,7 @@ const ChatContainer = ({
   }
 
   const handleSendMessage = (message: string) => {
-    onSendMessage(chat._id, message);
+    onSendMessage(message, chat._id);
   };
 
   // Determine status text for header
