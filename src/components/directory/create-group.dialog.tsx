@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,29 +11,16 @@ import {
   Typography,
   Avatar,
   Chip,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import { GroupOutlined } from '@mui/icons-material';
+import { useAuth } from '../../components/auth/auth.provider';
+import usersService, { type User } from '../../services/users.service';
 
-// Mock user data for autocomplete
-const mockUsers = [
-  { _id: 'u1', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/45.jpg' },
-  { _id: 'u2', firstName: 'Michael', lastName: 'Chen', email: 'michael.chen@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/42.jpg' },
-  { _id: 'u3', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.johnson@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/63.jpg' },
-  { _id: 'u4', firstName: 'David', lastName: 'Wilson', email: 'david.wilson@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/57.jpg' },
-  { _id: 'u5', firstName: 'Jessica', lastName: 'Brown', email: 'jessica.brown@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/33.jpg' },
-  { _id: 'u6', firstName: 'Alex', lastName: 'Garcia', email: 'alex.garcia@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/28.jpg' },
-  { _id: 'u7', firstName: 'Lisa', lastName: 'Martinez', email: 'lisa.martinez@example.com', profilePicture: 'https://randomuser.me/api/portraits/women/52.jpg' },
-  { _id: 'u8', firstName: 'Ryan', lastName: 'Taylor', email: 'ryan.taylor@example.com', profilePicture: 'https://randomuser.me/api/portraits/men/35.jpg' }
-];
 
-interface User {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  profilePicture?: string;
-}
+
+// User interface is now imported from users.service.ts
 
 export interface GroupData {
   name: string;
@@ -47,9 +34,37 @@ interface CreateGroupDialogProps {
 }
 
 const CreateGroupDialog = ({ open, onClose, onCreateGroup }: CreateGroupDialogProps) => {
+  const { session } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedParticipants, setSelectedParticipants] = useState<User[]>([]);
   const [groupName, setGroupName] = useState('');
   const [inputValue, setInputValue] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Fetch users when dialog opens or search term changes
+  useEffect(() => {
+    if (!open) return;
+    
+    const fetchUsers = async () => {
+      if (!session?.token) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await usersService.getUsers(session.token, 1, 50, searchTerm);
+        setUsers(response.users || []);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Failed to load users. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUsers();
+  }, [open, session?.token, searchTerm]);
   
   // Generate default group name based on participants
   const defaultGroupName = useMemo(() => {
@@ -84,6 +99,8 @@ const CreateGroupDialog = ({ open, onClose, onCreateGroup }: CreateGroupDialogPr
     setSelectedParticipants([]);
     setGroupName('');
     setInputValue('');
+    setSearchTerm('');
+    setError(null);
     onClose();
   };
 
@@ -140,7 +157,7 @@ const CreateGroupDialog = ({ open, onClose, onCreateGroup }: CreateGroupDialogPr
         {/* User Search */}
         <Autocomplete
           id="user-search"
-          options={mockUsers.filter(user => 
+          options={users.filter(user => 
             // Filter out users that are already selected
             !selectedParticipants.some(participant => participant._id === user._id)
           )}
@@ -167,6 +184,16 @@ const CreateGroupDialog = ({ open, onClose, onCreateGroup }: CreateGroupDialogPr
               fullWidth
               margin="normal"
               variant="outlined"
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
             />
           )}
           value={null} // Always null since we're managing selections separately
@@ -187,7 +214,13 @@ const CreateGroupDialog = ({ open, onClose, onCreateGroup }: CreateGroupDialogPr
           noOptionsText="No users found"
         />
 
-        {selectedParticipants.length === 0 && (
+        {error && (
+          <Typography variant="body2" color="error" sx={{ mt: 1, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )}
+        
+        {selectedParticipants.length === 0 && !error && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
             Search and add at least one person to create a group chat
           </Typography>

@@ -10,7 +10,8 @@ import {
   Divider, 
   IconButton, 
   ListItemButton,
-  CircularProgress
+  CircularProgress,
+  Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -24,16 +25,20 @@ import axios from 'axios';
 import { useAuth } from '../../components/auth/auth.provider';
 import FilePicker from '../common/file-picker';
 import UploadedPicturePreview from '../common/uploaded-picture-preview';
+import NotificationDialog from './components/NotificationDialog';
+import { useNotifications } from './hooks/useNotifications';
 
 // Define base URL for API calls
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { signOut, session } = useAuth();
   const [profileImage, setProfileImage] = useState<string | null>(session?.profilePicture ?? null);
+  const { unreadCount } = useNotifications();
 
   const user = session;
 
@@ -132,11 +137,19 @@ const ChatHeader = () => {
           throw new Error(response.data.message || 'Failed to delete profile picture');
         }
 
-        // Update local state
+        // Revoke blob URL if it's a local file upload
+        if (profileImage.startsWith('blob:')) {
+          URL.revokeObjectURL(profileImage);
+        }
+
+        // Clear local state immediately to update UI
         setProfileImage(null);
-        URL.revokeObjectURL(profileImage);
+        
+        console.log('Profile image deleted successfully, state cleared');
+        
       } catch (error) {
         console.error('Error deleting profile picture:', error);
+        // Optionally show an error message to the user
       } finally {
         setIsDeleting(false);
       }
@@ -223,6 +236,7 @@ const ChatHeader = () => {
                   imageUrl={profileImage || undefined} 
                   alt="Profile picture"
                   fallbackText={user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
+                  key={profileImage || 'no-image'}
                 />
               )}
             </FilePicker>
@@ -266,9 +280,11 @@ const ChatHeader = () => {
             </ListItemIcon>
             <ListItemText primary="Profile" />
           </ListItemButton>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => setNotificationDialogOpen(true)}>
             <ListItemIcon>
-              <NotificationsIcon color="primary" />
+              <Badge badgeContent={unreadCount} color="primary">
+                <NotificationsIcon />
+              </Badge>
             </ListItemIcon>
             <ListItemText primary="Notifications" />
           </ListItemButton>
@@ -303,6 +319,11 @@ const ChatHeader = () => {
           </Button>
         </Box>
       </Drawer>
+
+      <NotificationDialog 
+        open={notificationDialogOpen} 
+        onClose={() => setNotificationDialogOpen(false)} 
+      />
     </>
   );
 };

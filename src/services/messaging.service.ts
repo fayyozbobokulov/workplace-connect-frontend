@@ -109,6 +109,17 @@ export interface UserStatusResponse {
   };
 }
 
+// Mark messages as read response interface
+export interface MarkMessagesReadResponse {
+  success: boolean;
+  message: string;
+  data: {
+    messageIds: string[];
+    readBy: string;
+    updatedCount: number;
+  };
+}
+
 // Socket event interfaces
 export interface SocketEvents {
   // Client to server events
@@ -125,8 +136,8 @@ export interface SocketEvents {
 
   // Server to client events
   'direct-message': (message: Message) => void;
-  'group-message': (message: Message) => void;
-  'message-sent': (response: { success: boolean; message: Message }) => void;
+  'group-message': (data: { message: Message; groupId: string }) => void;
+  'message-sent': (response: { success: boolean; message: Message; groupId?: string }) => void;
   'user-typing': (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => void;
   'user-stopped-typing': (data: { userId: string; type: 'direct' | 'group'; groupId?: string }) => void;
   'user-status': (data: { userId: string; status: 'online' | 'offline' }) => void;
@@ -141,7 +152,7 @@ class MessagingService {
   private socket: Socket | null = null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   private eventListeners: Map<string, Function[]> = new Map();
-
+  private baseUrl = API_BASE_URL;
 
   // Initialize socket connection
   initializeSocket(token: string): Socket {
@@ -294,16 +305,19 @@ class MessagingService {
   }
 
   // Mark messages as read
-  async markMessagesAsRead(messageIds: string[], token: string): Promise<void> {
+  async markMessagesAsRead(messageIds: string[], token: string): Promise<MarkMessagesReadResponse> {
     try {
-      await axios.put(`${API_BASE_URL}/messages/read`, 
+      const response = await axios.put(
+        `${this.baseUrl}/read`,
         { messageIds },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           }
         }
       );
+      return response.data;
     } catch (error) {
       console.error('Error marking messages as read:', error);
       throw error;

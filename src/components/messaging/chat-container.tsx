@@ -50,7 +50,7 @@ const ChatContainer = ({
   // Determine status text for header
   const getStatusText = () => {
     if (chat.isGroup) {
-      return `${(chat.participants?.length || 0) + 1} members`;
+      return `members`;
     }
     
     if (isTyping) {

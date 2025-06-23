@@ -8,6 +8,7 @@ import ChatContainer from '../components/messaging/chat-container';
 import type { Message } from '../components/messaging/message-window';
 import usersService, { type User } from '../services/users.service';
 import groupsService, { type Group } from '../services/groups.service';
+import { AxiosError } from 'axios';
 
 const Home = () => {
   const { session } = useAuth();
@@ -251,19 +252,34 @@ const Home = () => {
       // Create group via API
       const response = await groupsService.createGroup(
         session.token,
-        groupData.name,
+        groupData.name || `New Group`, // Ensure name is not undefined
         undefined, // description - GroupData doesn't include description
         memberEmails
       );
       
-      // Add the new group to local state
-      setGroups(prev => [...prev, response.data.group]);
-      
-      // The group should also appear in messaging.chats automatically
-      // through real-time updates when the first message is sent
+      if (response && response.data && response.data.group) {
+        // Add the new group to local state
+        setGroups(prev => [...prev, response.data.group]);
+        
+        // Log success information
+        console.log('Group created successfully:', response.data.group);
+        
+        // Check if there were any failed member additions
+        if (response.data.memberResults && response.data.memberResults.failed && response.data.memberResults.failed.length > 0) {
+          console.warn('Some members could not be added:', response.data.memberResults.failed);
+        }
+      } else {
+        console.error('Invalid response format from group creation API');
+        setShowError(true);
+      }
       
     } catch (error) {
       console.error('Error creating group:', error);
+      // Log more detailed error information if available
+      if (error instanceof AxiosError && error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Status code:', error.response.status);
+      }
       setShowError(true);
     } finally {
       setLoading(false);
