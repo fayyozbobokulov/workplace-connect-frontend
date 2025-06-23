@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   Box, 
   Typography, 
@@ -14,7 +15,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -33,6 +35,8 @@ const ChatHeader = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<'profile' | 'notifications' | 'privacy'>('profile');
   const [userDetails, setUserDetails] = useState({ firstName: '', lastName: '', email: '' });
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string }[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (user) {
@@ -53,9 +57,60 @@ const ChatHeader = () => {
     setDrawerOpen(false);
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const response = await axios.get('/api/notifications', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+        params: { page: 1, limit: 10, isRead: false }
+      });
+      setNotifications(response.data.notifications || []);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await axios.get('/api/notifications/unread-count', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+      });
+      setUnreadCount(response.data.count || 0);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
+
+  const markNotificationsAsRead = async (notificationIds: string[]) => {
+    try {
+      await axios.put('/api/notifications/read', { notificationIds }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+      });
+      fetchNotifications();
+      fetchUnreadCount();
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  const deleteNotifications = async (notificationIds: string[]) => {
+    try {
+      await axios.delete('/api/notifications', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
+        data: { notificationIds }
+      });
+      fetchNotifications();
+    } catch (error) {
+      console.error('Failed to delete notifications:', error);
+    }
+  };
+
   const handleDialogOpen = (content: 'profile' | 'notifications' | 'privacy') => {
     setDialogContent(content);
     setDialogOpen(true);
+    if (content === 'notifications') {
+      fetchNotifications();
+      fetchUnreadCount();
+    }
   };
 
   const handleDialogClose = () => {
@@ -171,7 +226,13 @@ const ChatHeader = () => {
           </ListItemButton>
           <ListItemButton sx={{ py: 1.5 }} onClick={() => handleDialogOpen('notifications')}>
             <ListItemIcon>
-              <NotificationsIcon color="primary" />
+              <Badge 
+                badgeContent={unreadCount} 
+                color="error" 
+                overlap="circular"
+              >
+                <NotificationsIcon color="primary" />
+              </Badge>
             </ListItemIcon>
             <ListItemText primary="Notifications" />
           </ListItemButton>
@@ -240,7 +301,33 @@ const ChatHeader = () => {
               />
             </>
           )}
-          {dialogContent === 'notifications' && <p>Here are your notifications.</p>}
+          {dialogContent === 'notifications' && (
+            <>
+              <Box>
+                {notifications.map((notification) => (
+                  <Box key={notification.id} sx={{ mb: 2 }}>
+                    <Typography variant="body1">{notification.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">{notification.message}</Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => markNotificationsAsRead([notification.id])}
+                    >
+                      Mark as Read
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      onClick={() => deleteNotifications([notification.id])}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          )}
           {dialogContent === 'privacy' && <p>Terms will be changed according to the organization.</p>}
         </DialogContent>
         <DialogActions>
