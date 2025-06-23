@@ -1,6 +1,10 @@
 # Workplace Connect Frontend
 
-A modern social networking platform for workplace connections built with React, TypeScript, and Material UI.
+Workplace Connect is a modern social networking platform for workplace connections built with React, TypeScript, and Material UI.
+
+This is a frontend repository for Workplace Connect.
+
+Please find the backend repository here: https://github.com/fayyozbobokulov/workplace-connect-server
 
 ## Features
 
