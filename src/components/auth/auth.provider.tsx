@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state on component mount
+  // Initializing auth state on component mount
   useEffect(() => {
     const initializeAuth = () => {
       try {
