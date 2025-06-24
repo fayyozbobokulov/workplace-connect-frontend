@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -36,11 +36,21 @@ const ChatHeader = () => {
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { signOut, session } = useAuth();
+  const [deletionTimestamp, setDeletionTimestamp] = useState<number>(0);
+  const [uploadTimestamp, setUploadTimestamp] = useState<number>(0);
+  const { signOut, session, updateUser } = useAuth();
   const [profileImage, setProfileImage] = useState<string | null>(session?.profilePicture ?? null);
   const { unreadCount } = useNotifications();
 
   const user = session;
+
+  // Sync local profileImage state with session, but don't override deliberate deletions
+  useEffect(() => {
+    // Only sync if we haven't deliberately deleted the image (deletionTimestamp > 0)
+    if (deletionTimestamp === 0) {
+      setProfileImage(session?.profilePicture ?? null);
+    }
+  }, [session?.profilePicture, deletionTimestamp]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -86,8 +96,10 @@ const ChatHeader = () => {
         }
       });
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to upload profile picture');
+      // Check if the request was successful (status 200-299)
+      // The backend might return just a message or different structure
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(response.data?.message || 'Failed to upload profile picture');
       }
 
       const result = response.data;
@@ -95,12 +107,22 @@ const ChatHeader = () => {
       // Update local state with the uploaded image URL from server
       if (result.profilePicture) {
         setProfileImage(result.profilePicture);
-        // Also update the session/user context if needed
-        // You might want to refresh user data here
+        setDeletionTimestamp(0); // Reset deletion timestamp so session sync works again
+        setUploadTimestamp(Date.now()); // Set upload timestamp to force re-render
+        
+        // Update session and localStorage with new profile picture
+        updateUser({ profilePicture: result.profilePicture });
       } else {
-        // Fallback to local preview if server doesn't return URL
+        // If backend doesn't return profilePicture URL, use local preview
+        // This happens when backend returns just a success message
         const imageUrl = URL.createObjectURL(file);
         setProfileImage(imageUrl);
+        setDeletionTimestamp(0); // Reset deletion timestamp
+        setUploadTimestamp(Date.now()); // Set upload timestamp to force re-render
+        
+        // Update session with a placeholder or empty string for now
+        // The actual URL should be fetched or the backend should return it
+        updateUser({ profilePicture: imageUrl });
       }
 
       console.log('Profile picture uploaded successfully:', result);
@@ -111,6 +133,7 @@ const ChatHeader = () => {
       // Still show local preview on error for better UX
       const imageUrl = URL.createObjectURL(file);
       setProfileImage(imageUrl);
+      setDeletionTimestamp(0); // Reset deletion timestamp
     } finally {
       setIsUploading(false);
     }
@@ -133,8 +156,10 @@ const ChatHeader = () => {
           }
         });
 
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Failed to delete profile picture');
+        // Check if the request was successful (status 200-299)
+        // The backend might return just a message or different structure
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(response.data?.message || 'Failed to delete profile picture');
         }
 
         // Revoke blob URL if it's a local file upload
@@ -144,8 +169,12 @@ const ChatHeader = () => {
 
         // Clear local state immediately to update UI
         setProfileImage(null);
+        setDeletionTimestamp(Date.now());
         
-        console.log('Profile image deleted successfully, state cleared');
+        // Update session and localStorage to clear profilePicture
+        updateUser({ profilePicture: '' });
+        
+        console.log('Profile image deleted successfully, state cleared, session updated, timestamp:', Date.now());
         
       } catch (error) {
         console.error('Error deleting profile picture:', error);
@@ -233,10 +262,10 @@ const ChatHeader = () => {
                 <CircularProgress size={40} />
               ) : (
                 <UploadedPicturePreview 
-                  imageUrl={profileImage || undefined} 
+                  imageUrl={profileImage ? `${profileImage}?t=${uploadTimestamp}` : undefined} 
                   alt="Profile picture"
                   fallbackText={user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
-                  key={profileImage || 'no-image'}
+                  key={`profile-${profileImage || 'deleted'}-${deletionTimestamp}-${uploadTimestamp}`}
                 />
               )}
             </FilePicker>

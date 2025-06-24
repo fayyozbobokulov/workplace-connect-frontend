@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (firstName: string, lastName: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   signOut: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 // Create the AuthContext
@@ -101,6 +102,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
   };
 
+  // Update user function
+  const updateUser = (updates: Partial<User>) => {
+    if (session) {
+      const updatedSession = { ...session, ...updates };
+      setSession(updatedSession);
+      setUser(updatedSession);
+      
+      // Update localStorage
+      localStorage.setItem('session', JSON.stringify(updatedSession));
+    }
+  };
+
   // Auth context value
   const value = {
     session,
@@ -109,7 +122,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     signIn,
     signUp,
-    signOut
+    signOut,
+    updateUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

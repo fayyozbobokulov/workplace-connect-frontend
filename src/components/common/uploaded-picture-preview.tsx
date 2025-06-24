@@ -14,25 +14,37 @@ const UploadedPicturePreview = ({
   fallbackText = "U"
 }: UploadedPicturePreviewProps) => {
   if (imageUrl) {
-    // Show uploaded image
+    // Show uploaded image using img element instead of background
     return (
       <Box
         sx={{
           width: size,
           height: size,
           borderRadius: '50%',
-          backgroundImage: `url(${imageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          borderColor: 'primary.main',
+          overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          borderColor: 'primary.main',
         }}
         role="img"
         aria-label={alt}
-      />
+      >
+        <img
+          src={imageUrl}
+          alt={alt}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block'
+          }}
+          onError={(e) => {
+            // Hide broken image if load fails
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      </Box>
     );
   }
 
