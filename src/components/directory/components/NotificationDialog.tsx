@@ -91,6 +91,8 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
   const {
     receivedFriendRequests,
     sentFriendRequests,
+    allReceivedRequests,
+    allSentRequests,
     notifications,
     loading,
     error,
@@ -98,7 +100,8 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
     rejectFriendRequest,
     markNotificationAsRead,
     fetchReceivedFriendRequests,
-    fetchSentFriendRequests
+    fetchSentFriendRequests,
+    refreshNotifications
   } = useNotifications();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -107,20 +110,65 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
 
   const handleReceivedFilterChange = (filter: 'all' | 'pending' | 'accepted' | 'rejected') => {
     setReceivedFilter(filter);
-    if (filter === 'all') {
-      fetchReceivedFriendRequests();
-    } else {
-      fetchReceivedFriendRequests(filter);
-    }
+    // Fetch data based on filter selection
+    fetchReceivedFriendRequests(filter);
   };
 
   const handleSentFilterChange = (filter: 'all' | 'pending' | 'accepted' | 'rejected') => {
     setSentFilter(filter);
-    if (filter === 'all') {
-      fetchSentFriendRequests();
-    } else {
-      fetchSentFriendRequests(filter);
+    // Fetch data based on filter selection
+    fetchSentFriendRequests(filter);
+  };
+
+  // Handle accept friend request with loading state
+  const handleAcceptRequest = async (requestId: string) => {
+    const success = await acceptFriendRequest(requestId);
+    if (success) {
+      // Refresh data to show updated status
+      setTimeout(() => {
+        if (receivedFilter === 'all') {
+          fetchReceivedFriendRequests('all');
+        }
+      }, 500);
     }
+  };
+
+  // Handle reject friend request with loading state
+  const handleRejectRequest = async (requestId: string) => {
+    const success = await rejectFriendRequest(requestId);
+    if (success) {
+      // Refresh data to show updated status
+      setTimeout(() => {
+        if (receivedFilter === 'all') {
+          fetchReceivedFriendRequests('all');
+        }
+      }, 500);
+    }
+  };
+
+  // Get filtered requests based on current filter
+  const getFilteredReceivedRequests = () => {
+    const baseRequests = receivedFilter === 'all' ? allReceivedRequests : receivedFriendRequests;
+    
+    if (receivedFilter === 'all') {
+      return baseRequests; // Already sorted by createdAt in the hook
+    }
+    
+    return baseRequests.filter((request: FriendRequest) => {
+      return request.status === receivedFilter;
+    });
+  };
+
+  const getFilteredSentRequests = () => {
+    const baseRequests = sentFilter === 'all' ? allSentRequests : sentFriendRequests;
+    
+    if (sentFilter === 'all') {
+      return baseRequests; // Already sorted by createdAt in the hook
+    }
+    
+    return baseRequests.filter((request: FriendRequest) => {
+      return request.status === sentFilter;
+    });
   };
 
   const FriendRequestItem: React.FC<{ request: FriendRequest; type?: 'received' | 'sent' }> = ({ request, type = 'received' }) => {
@@ -142,8 +190,15 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
       }
     };
 
-    const targetUser = type === 'received' ? request.from : request.to;
+    // Get the target user based on request type
+    const targetUser = type === 'received' ? request.senderDetails : request.recipientDetails;
     const isActionable = request.status === 'pending' && type === 'received';
+    const isUpdated = request.updatedAt !== request.createdAt;
+
+    // Generate fallback avatar if no profile picture
+    const avatarSrc = targetUser?.profilePicture && targetUser.profilePicture.trim() !== '' 
+      ? targetUser.profilePicture 
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUser?.firstName || 'U')}+${encodeURIComponent(targetUser?.lastName || '')}&background=1976d2&color=fff&size=40`;
 
     return (
       <ListItem
@@ -152,13 +207,14 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
           alignItems: 'stretch',
           py: 2,
           borderBottom: '1px solid #f0f0f0',
-          bgcolor: request.status === 'pending' ? 'action.hover' : 'transparent'
+          bgcolor: request.status === 'pending' ? 'action.hover' : 'transparent',
+          position: 'relative'
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 1 }}>
           <ListItemAvatar>
             <Avatar
-              src={targetUser?.profilePicture || ''}
+              src={avatarSrc}
               sx={{ bgcolor: 'primary.main' }}
             >
               {targetUser?.firstName?.charAt(0).toUpperCase() || 'U'}
@@ -166,9 +222,20 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
           </ListItemAvatar>
           <ListItemText
             primary={
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                {targetUser?.firstName || 'Unknown'} {targetUser?.lastName || 'User'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  {targetUser?.firstName || 'Unknown'} {targetUser?.lastName || 'User'}
+                </Typography>
+                {isUpdated && request.status !== 'pending' && (
+                  <Chip 
+                    label="Updated" 
+                    size="small" 
+                    color="info" 
+                    variant="outlined"
+                    sx={{ fontSize: '0.7rem', height: '20px' }}
+                  />
+                )}
+              </Box>
             }
             secondary={
               <Box>
@@ -176,7 +243,13 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                   {targetUser?.email || 'No email'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {formatTimeAgo(request.createdAt)}
+                  {type === 'received' ? 'Received' : 'Sent'} {formatTimeAgo(request.createdAt)}
+                  {isUpdated && (
+                    <>
+                      {' • '}
+                      {request.status === 'accepted' ? 'Accepted' : 'Updated'} {formatTimeAgo(request.updatedAt)}
+                    </>
+                  )}
                 </Typography>
               </Box>
             }
@@ -184,7 +257,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Chip
               icon={getStatusIcon(request.status)}
-              label={`${request.status.charAt(0).toUpperCase() + request.status.slice(1)} ${type === 'received' ? 'Request' : 'Sent'}`}
+              label={request.status.charAt(0).toUpperCase() + request.status.slice(1)}
               size="small"
               color={getStatusColor(request.status)}
               variant={request.status === 'pending' ? 'filled' : 'outlined'}
@@ -198,7 +271,8 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
               variant="contained"
               size="small"
               startIcon={<CheckIcon />}
-              onClick={() => acceptFriendRequest(request._id)}
+              onClick={() => handleAcceptRequest(request._id)}
+              disabled={loading}
               sx={{ minWidth: 100 }}
             >
               Accept
@@ -207,8 +281,9 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
               variant="outlined"
               size="small"
               startIcon={<RejectIcon />}
-              onClick={() => rejectFriendRequest(request._id)}
+              onClick={() => handleRejectRequest(request._id)}
               color="error"
+              disabled={loading}
               sx={{ minWidth: 100 }}
             >
               Reject
@@ -280,21 +355,34 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
     </ListItem>
   );
 
-  const receivedRequests = receivedFriendRequests.filter((request: FriendRequest) => {
-    if (receivedFilter === 'all') return true;
-    if (receivedFilter === 'pending') return request.status === 'pending';
-    if (receivedFilter === 'accepted') return request.status === 'accepted';
-    if (receivedFilter === 'rejected') return request.status === 'rejected';
-    return false;
-  });
+  const receivedRequests = getFilteredReceivedRequests();
+  const sentRequests = getFilteredSentRequests();
 
-  const sentRequests = sentFriendRequests.filter((request: FriendRequest) => {
-    if (sentFilter === 'all') return true;
-    if (sentFilter === 'pending') return request.status === 'pending';
-    if (sentFilter === 'accepted') return request.status === 'accepted';
-    if (sentFilter === 'rejected') return request.status === 'rejected';
-    return false;
-  });
+  // Get counts for each status
+  const getReceivedCounts = () => {
+    const counts = { all: 0, pending: 0, accepted: 0, rejected: 0 };
+    allReceivedRequests.forEach(req => {
+      counts.all++;
+      if (req.status === 'pending') counts.pending++;
+      else if (req.status === 'accepted') counts.accepted++;
+      else if (req.status === 'rejected') counts.rejected++;
+    });
+    return counts;
+  };
+
+  const getSentCounts = () => {
+    const counts = { all: 0, pending: 0, accepted: 0, rejected: 0 };
+    allSentRequests.forEach(req => {
+      counts.all++;
+      if (req.status === 'pending') counts.pending++;
+      else if (req.status === 'accepted') counts.accepted++;
+      else if (req.status === 'rejected') counts.rejected++;
+    });
+    return counts;
+  };
+
+  const receivedCounts = getReceivedCounts();
+  const sentCounts = getSentCounts();
 
   return (
     <Dialog
@@ -318,17 +406,72 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
           fontWeight: 600
         }}
       >
-        Notifications
-        <IconButton onClick={onClose} size="small">
-          <CloseIcon />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          Notifications
+          {(receivedCounts.pending > 0 || sentCounts.pending > 0) && (
+            <Badge
+              badgeContent={receivedCounts.pending + sentCounts.pending}
+              color="error"
+              sx={{ 
+                '& .MuiBadge-badge': { 
+                  fontSize: '0.7rem',
+                  minWidth: '18px',
+                  height: '18px'
+                }
+              }}
+            />
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            size="small"
+            onClick={refreshNotifications}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : undefined}
+          >
+            Refresh
+          </Button>
+          <IconButton onClick={onClose} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </DialogTitle>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={tabValue} onChange={handleTabChange} aria-label="notification tabs">
-          <Tab label="Received Friend Requests" {...a11yProps(0)} />
-          <Tab label="Sent Friend Requests" {...a11yProps(1)} />
-          <Tab label="All Notifications" {...a11yProps(2)} />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                Received Requests
+                {receivedCounts.pending > 0 && (
+                  <Chip 
+                    label={receivedCounts.pending} 
+                    size="small" 
+                    color="error"
+                    sx={{ fontSize: '0.7rem', height: '20px', minWidth: '20px' }}
+                  />
+                )}
+              </Box>
+            } 
+            {...a11yProps(0)} 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                Sent Requests
+                {sentCounts.pending > 0 && (
+                  <Chip 
+                    label={sentCounts.pending} 
+                    size="small" 
+                    color="warning"
+                    sx={{ fontSize: '0.7rem', height: '20px', minWidth: '20px' }}
+                  />
+                )}
+              </Box>
+            } 
+            {...a11yProps(1)} 
+          />
+          <Tab label="Other Notifications" {...a11yProps(2)} />
         </Tabs>
       </Box>
 
@@ -342,10 +485,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
         {error && (
           <Box sx={{ p: 2 }}>
             <Alert severity="error" action={
-              <Button size="small" onClick={() => {
-                fetchReceivedFriendRequests();
-                fetchSentFriendRequests();
-              }}>
+              <Button size="small" onClick={refreshNotifications}>
                 Retry
               </Button>
             }>
@@ -357,8 +497,10 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
         {!loading && !error && (
           <>
             <TabPanel value={tabValue} index={0}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2 }}>
-                <Typography variant="body1">Received Friend Requests</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Received Friend Requests ({receivedRequests.length})
+                </Typography>
                 <FormControl sx={{ minWidth: 120 }}>
                   <InputLabel id="received-filter-label">Filter</InputLabel>
                   <Select
@@ -367,11 +509,12 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                     value={receivedFilter}
                     label="Filter"
                     onChange={(event) => handleReceivedFilterChange(event.target.value as 'all' | 'pending' | 'accepted' | 'rejected')}
+                    size="small"
                   >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="accepted">Accepted</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
+                    <MenuItem value="all">All ({receivedCounts.all})</MenuItem>
+                    <MenuItem value="pending">Pending ({receivedCounts.pending})</MenuItem>
+                    <MenuItem value="accepted">Accepted ({receivedCounts.accepted})</MenuItem>
+                    <MenuItem value="rejected">Rejected ({receivedCounts.rejected})</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -380,20 +523,27 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <PersonAddIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
-                      No received friend requests
+                      {receivedFilter === 'all' 
+                        ? 'No friend requests received yet' 
+                        : `No ${receivedFilter} friend requests`}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      When someone sends you a friend request, it will appear here
                     </Typography>
                   </Box>
                 ) : (
                   receivedRequests.map((request: FriendRequest) => (
-                    <FriendRequestItem key={request._id} request={request} type="received" />
+                    <FriendRequestItem key={`received-${request._id}`} request={request} type="received" />
                   ))
                 )}
               </List>
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 2 }}>
-                <Typography variant="body1">Sent Friend Requests</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2 }}>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Sent Friend Requests ({sentRequests.length})
+                </Typography>
                 <FormControl sx={{ minWidth: 120 }}>
                   <InputLabel id="sent-filter-label">Filter</InputLabel>
                   <Select
@@ -402,11 +552,12 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                     value={sentFilter}
                     label="Filter"
                     onChange={(event) => handleSentFilterChange(event.target.value as 'all' | 'pending' | 'accepted' | 'rejected')}
+                    size="small"
                   >
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="pending">Pending</MenuItem>
-                    <MenuItem value="accepted">Accepted</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
+                    <MenuItem value="all">All ({sentCounts.all})</MenuItem>
+                    <MenuItem value="pending">Pending ({sentCounts.pending})</MenuItem>
+                    <MenuItem value="accepted">Accepted ({sentCounts.accepted})</MenuItem>
+                    <MenuItem value="rejected">Rejected ({sentCounts.rejected})</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -415,12 +566,17 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <SendIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
-                      No sent friend requests
+                      {sentFilter === 'all' 
+                        ? 'No friend requests sent yet' 
+                        : `No ${sentFilter} friend requests`}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Use the "Add Friend" button to send friend requests
                     </Typography>
                   </Box>
                 ) : (
                   sentRequests.map((request: FriendRequest) => (
-                    <FriendRequestItem key={request._id} request={request} type="sent" />
+                    <FriendRequestItem key={`sent-${request._id}`} request={request} type="sent" />
                   ))
                 )}
               </List>
@@ -432,7 +588,10 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <NotificationsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
-                      No notifications yet
+                      No other notifications yet
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      System notifications and messages will appear here
                     </Typography>
                   </Box>
                 ) : (

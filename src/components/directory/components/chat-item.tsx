@@ -5,7 +5,7 @@ import {
   ListItemText, 
   Typography, 
   Box, 
-  Badge 
+  // Badge 
 } from '@mui/material';
 import OnlineStatusBadge from './online-status-bar';
 import GroupAvatar from './group-avatar';
@@ -81,14 +81,14 @@ const ChatItem = ({ chat, isSelected, onSelect }: ChatItemProps) => {
           <Typography variant="caption" color="text.secondary">
             {chat.timestamp}
           </Typography>
-          <Box sx={{ minHeight: '20px', display: 'flex', alignItems: 'center' }}>
+          {/* <Box sx={{ minHeight: '20px', display: 'flex', alignItems: 'center' }}>
             {chat.unread && (
               <Badge 
                 badgeContent={chat.unread} 
                 color="primary" 
               />
             )}
-          </Box>
+          </Box> */}
         </Box>
       </ListItemButton>
     </ListItem>
