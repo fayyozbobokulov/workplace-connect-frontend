@@ -26,6 +26,7 @@ import { useAuth } from '../../components/auth/auth.provider';
 import FilePicker from '../common/file-picker';
 import UploadedPicturePreview from '../common/uploaded-picture-preview';
 import NotificationDialog from './components/NotificationDialog';
+import { ProfileEditDialog } from '../profile/profile-edit-dialog';
 import { useNotifications } from './hooks/useNotifications';
 
 // Define base URL for API calls
@@ -34,6 +35,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [profileEditDialogOpen, setProfileEditDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletionTimestamp, setDeletionTimestamp] = useState<number>(0);
@@ -303,7 +305,7 @@ const ChatHeader = () => {
 
         {/* Settings Menu */}
         <List sx={{ p: 0 }}>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => setProfileEditDialogOpen(true)}>
             <ListItemIcon>
               <AccountCircleIcon color="primary" />
             </ListItemIcon>
@@ -352,6 +354,10 @@ const ChatHeader = () => {
       <NotificationDialog 
         open={notificationDialogOpen} 
         onClose={() => setNotificationDialogOpen(false)} 
+      />
+      <ProfileEditDialog 
+        open={profileEditDialogOpen} 
+        onClose={() => setProfileEditDialogOpen(false)} 
       />
     </>
   );
