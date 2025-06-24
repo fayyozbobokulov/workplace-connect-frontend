@@ -27,6 +27,8 @@ import FilePicker from '../common/file-picker';
 import UploadedPicturePreview from '../common/uploaded-picture-preview';
 import NotificationDialog from './components/NotificationDialog';
 import { ProfileEditDialog } from '../profile/profile-edit-dialog';
+import { PrivacySecurityDialog } from '../dialogs/privacy-security-dialog';
+import { HelpSupportDialog } from '../dialogs/help-support-dialog';
 import { useNotifications } from './hooks/useNotifications';
 
 // Define base URL for API calls
@@ -36,6 +38,8 @@ const ChatHeader = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [profileEditDialogOpen, setProfileEditDialogOpen] = useState(false);
+  const [privacySecurityDialogOpen, setPrivacySecurityDialogOpen] = useState(false);
+  const [helpSupportDialogOpen, setHelpSupportDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletionTimestamp, setDeletionTimestamp] = useState<number>(0);
@@ -319,13 +323,13 @@ const ChatHeader = () => {
             </ListItemIcon>
             <ListItemText primary="Notifications" />
           </ListItemButton>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => setPrivacySecurityDialogOpen(true)}>
             <ListItemIcon>
               <SecurityIcon color="primary" />
             </ListItemIcon>
             <ListItemText primary="Privacy & Security" />
           </ListItemButton>
-          <ListItemButton sx={{ py: 1.5 }}>
+          <ListItemButton sx={{ py: 1.5 }} onClick={() => setHelpSupportDialogOpen(true)}>
             <ListItemIcon>
               <HelpIcon color="primary" />
             </ListItemIcon>
@@ -358,6 +362,14 @@ const ChatHeader = () => {
       <ProfileEditDialog 
         open={profileEditDialogOpen} 
         onClose={() => setProfileEditDialogOpen(false)} 
+      />
+      <PrivacySecurityDialog 
+        open={privacySecurityDialogOpen} 
+        onClose={() => setPrivacySecurityDialogOpen(false)} 
+      />
+      <HelpSupportDialog 
+        open={helpSupportDialogOpen} 
+        onClose={() => setHelpSupportDialogOpen(false)} 
       />
     </>
   );
