@@ -16,6 +16,7 @@ const Home = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [enrichedChats, setEnrichedChats] = useState<Chat[]>([]);
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -35,57 +36,127 @@ const Home = () => {
     online: messaging.isUserOnline(user._id)
   }), [messaging]);
 
-  // Convert Group to Chat format
-  const convertGroupToChat = (group: Group): Chat => ({
-    _id: group._id,
-    name: group.name,
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random`,
-    lastMessage: '',
-    timestamp: '',
-    unread: 0,
-    isPinned: false,
-    isGroup: true,
-    participants: [] // This would be populated with member details if needed
-  });
+  // Convert Group to Chat format with populated participants
+  const convertGroupToChat = async (group: Group): Promise<Chat> => {
+    try {
+      // Fetch user details for all members
+      const memberPromises = group.members.map(async (memberId) => {
+        try {
+          const userResponse = await usersService.getUserById(memberId, session!.token);
+          const user = userResponse.data.user;
+          return {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profilePicture: user.profilePicture,
+            online: messaging.isUserOnline(user._id),
+            role: group.admins.includes(user._id) ? 'admin' as const : 'member' as const,
+            lastSeen: messaging.isUserOnline(user._id) ? undefined : 'recently'
+          };
+        } catch (error) {
+          console.error(`Failed to fetch user ${memberId}:`, error);
+          // Return a fallback participant if user fetch fails
+          return {
+            _id: memberId,
+            firstName: 'Unknown',
+            lastName: 'User',
+            profilePicture: undefined,
+            online: false,
+            role: group.admins.includes(memberId) ? 'admin' as const : 'member' as const,
+            lastSeen: 'unknown'
+          };
+        }
+      });
 
-  // Create a map to store unique chats by _id
-  const chatMap = new Map<string, Chat>();
+      const participants = await Promise.all(memberPromises);
 
-  // First, add all messaging chats (from backend conversations)
-  messaging.chats.forEach(chat => {
-    // Find corresponding friend data for better avatar/info
-    const friend = friends.find(f => f._id === chat._id);
-    
-    chatMap.set(chat._id, {
-      _id: chat._id,
-      name: chat.name,
-      avatar: friend?.avatar || chat.avatar, // Prefer friend avatar if available
-      lastMessage: chat.lastMessage,
-      timestamp: chat.timestamp,
-      unread: chat.unread,
-      online: chat.isGroup ? undefined : messaging.isUserOnline(chat._id),
-      isPinned: false,
-      isGroup: chat.isGroup,
-      participants: chat.participants
-    });
-  });
+      return {
+        _id: group._id,
+        name: group.name,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random`,
+        lastMessage: '',
+        timestamp: '',
+        unread: 0,
+        isPinned: false,
+        isGroup: true,
+        participants
+      };
+    } catch (error) {
+      console.error('Error converting group to chat:', error);
+      // Return chat with empty participants if conversion fails
+      return {
+        _id: group._id,
+        name: group.name,
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(group.name)}&background=random`,
+        lastMessage: '',
+        timestamp: '',
+        unread: 0,
+        isPinned: false,
+        isGroup: true,
+        participants: []
+      };
+    }
+  };
 
-  // Add groups that don't have active conversations yet
-  groups
-    .filter(group => !chatMap.has(group._id))
-    .forEach(group => {
-      chatMap.set(group._id, convertGroupToChat(group));
-    });
+  // Effect to build enriched chats with populated group participants
+  useEffect(() => {
+    const buildEnrichedChats = async () => {
+      if (!session?.token) return;
 
-  // Convert map to array
-  const allChats: Chat[] = Array.from(chatMap.values());
+      // Create chat map with messaging chats
+      const chatMap = new Map<string, Chat>();
+      
+      // Add messaging chats first
+      messaging.chats.forEach(chat => {
+        // Find corresponding friend data for better avatar/info
+        const friend = friends.find(f => f._id === chat._id);
+        
+        chatMap.set(chat._id, {
+          _id: chat._id,
+          name: chat.name,
+          avatar: friend?.avatar || chat.avatar, // Prefer friend avatar if available
+          lastMessage: chat.lastMessage,
+          timestamp: chat.timestamp,
+          unread: chat.unread,
+          online: chat.isGroup ? undefined : messaging.isUserOnline(chat._id),
+          isPinned: false,
+          isGroup: chat.isGroup,
+          participants: chat.participants
+        });
+      });
+
+      // Add groups that don't have active conversations yet
+      const groupsToAdd = groups.filter(group => !chatMap.has(group._id));
+      if (groupsToAdd.length > 0) {
+        console.log('Converting groups to chats with participants:', groupsToAdd.length);
+        try {
+          const convertedGroups = await Promise.all(
+            groupsToAdd.map(group => convertGroupToChat(group))
+          );
+          
+          // Add converted groups to chat map
+          convertedGroups.forEach(chat => {
+            chatMap.set(chat._id, chat);
+          });
+        } catch (error) {
+          console.error('Error converting groups to chats:', error);
+        }
+      }
+
+      // Update enriched chats state
+      const newEnrichedChats = Array.from(chatMap.values());
+      setEnrichedChats(newEnrichedChats);
+    };
+
+    buildEnrichedChats();
+  }, [groups, messaging.chats, friends, session?.token, messaging.isUserOnline]);
 
   // Debug logging for chat construction
   console.log('🏠 Home allChats construction:', {
     messagingChats: messaging.chats.length,
-    groupsWithoutChats: groups.filter(group => !chatMap.has(group._id)).length,
-    totalAllChats: allChats.length,
-    allChatIds: allChats.map(c => ({ id: c._id, name: c.name, isGroup: c.isGroup, hasAvatar: !!c.avatar }))
+    groupsWithoutChats: groups.filter(group => !enrichedChats.find(chat => chat._id === group._id)).length,
+    totalAllChats: enrichedChats.length,
+    allChatIds: enrichedChats.map(c => ({ id: c._id, name: c.name, isGroup: c.isGroup, hasAvatar: !!c.avatar }))
   });
 
   // Get current messages for selected chat
@@ -159,7 +230,7 @@ const Home = () => {
   // Load messages when chat is selected
   useEffect(() => {
     if (selectedChatId) {
-      const selectedChat = allChats.find(chat => chat._id === selectedChatId);
+      const selectedChat = enrichedChats.find(chat => chat._id === selectedChatId);
       const isGroup = selectedChat?.isGroup || false;
       
       // Load messages for the selected chat
@@ -181,12 +252,12 @@ const Home = () => {
   // Handle chat selection
   const handleSelectChat = (chatId: string) => {
     console.log('Chat selected:', chatId);
-    console.log('Available chats:', allChats.map(c => ({ id: c._id, name: c.name })));
+    console.log('Available chats:', enrichedChats.map(c => ({ id: c._id, name: c.name })));
     setSelectedChatId(chatId);
   };
 
   // Get selected chat object (from allChats or convert friend to chat format)
-  const selectedChat = allChats.find(chat => chat._id === selectedChatId) || 
+  const selectedChat = enrichedChats.find(chat => chat._id === selectedChatId) || 
     (selectedChatId ? (() => {
       const friend = friends.find(friend => friend._id === selectedChatId);
       if (friend) {
@@ -215,7 +286,7 @@ const Home = () => {
     console.log('handleSendMessage called:', { text, chatId });
     
     // Find the chat in allChats to determine if it's a group
-    const targetChat = allChats.find(chat => chat._id === chatId);
+    const targetChat = enrichedChats.find(chat => chat._id === chatId);
     let isGroup = false;
     
     if (targetChat) {
@@ -288,13 +359,13 @@ const Home = () => {
 
   // Handle typing indicators
   const handleStartTyping = (chatId: string) => {
-    const selectedChat = allChats.find(chat => chat._id === chatId);
+    const selectedChat = enrichedChats.find(chat => chat._id === chatId);
     const isGroup = selectedChat?.isGroup || false;
     messaging.startTyping(chatId, isGroup);
   };
 
   const handleStopTyping = (chatId: string) => {
-    const selectedChat = allChats.find(chat => chat._id === chatId);
+    const selectedChat = enrichedChats.find(chat => chat._id === chatId);
     const isGroup = selectedChat?.isGroup || false;
     messaging.stopTyping(chatId, isGroup);
   };
@@ -335,7 +406,7 @@ const Home = () => {
             }}
           >
             <ChatList 
-              chats={allChats} 
+              chats={enrichedChats} 
               selectedChatId={selectedChatId} 
               onSelectChat={handleSelectChat}
               friends={friends} 
@@ -347,7 +418,7 @@ const Home = () => {
           <Box 
             sx={{ 
               flex: 1,
-              display: isMobile && !selectedChatId ? 'none' : 'flex'
+              display: 'flex'
             }}
           >
             <ChatContainer 
